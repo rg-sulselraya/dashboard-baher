@@ -837,8 +837,8 @@
         return {
           student,
           class: studentClass,
-          subject: valueAt(row, subjectIndex) || "-",
-          topic: valueAt(row, topicIndex) || "-",
+          subject: normalizeDrillMaterial(valueAt(row, subjectIndex)),
+          topic: normalizeDrillMaterial(valueAt(row, topicIndex)),
           date,
           dateLabel: safeFormatLongDate(date),
           month: month || monthNameFromDate(date),
@@ -1083,21 +1083,23 @@
         const key = row.class;
         if (!key) return;
         if (!grouped.has(key)) {
-          grouped.set(key, { class: key, correct: 0, target: 0, total: 0, students: new Set() });
+          grouped.set(key, { class: key, correct: 0, target: 0, total: 0, students: new Set(), dates: new Set() });
         }
         const item = grouped.get(key);
         item.correct += row.correct;
         item.total += row.total;
         item.students.add(row.student.toLowerCase());
+        item.dates.add(row.date);
       });
       grouped.forEach((item) => {
-        const shownDates = Math.max(dates.length, 1);
+        const shownDates = Math.max(item.dates.size, 1);
         const activeCount = activeStudentsByClass(item.class).length || item.students.size;
         item.target = activeCount * drillTarget(item.class) * shownDates;
-        item.percent = item.target ? Math.round((item.correct / item.target) * 100) : 0;
+        item.percentExact = item.target ? (item.correct / item.target) * 100 : 0;
+        item.percent = Math.round(item.percentExact);
       });
       const leaders = [...grouped.values()]
-        .sort((a, b) => b.percent - a.percent || b.correct - a.correct || a.class.localeCompare(b.class, "id"))
+        .sort((a, b) => b.percentExact - a.percentExact || b.correct - a.correct || a.class.localeCompare(b.class, "id"))
         .slice(0, 3);
       const medals = ["🥇", "🥈", "🥉"];
       $("drillLeaderboardGrid").innerHTML = `<div class="leaderboard-card class-leaderboard">
@@ -1124,8 +1126,8 @@
     function summarizeSubjectTopicRows(rows) {
       const grouped = new Map();
       rows.forEach((row) => {
-        const subject = row.subject || "-";
-        const topic = row.topic || "-";
+        const subject = normalizeDrillMaterial(row.subject);
+        const topic = normalizeDrillMaterial(row.topic);
         const key = `${subject.toLowerCase()}|${topic.toLowerCase()}`;
         if (!grouped.has(key)) {
           grouped.set(key, { subject, topic, target: drillTarget(row.class), correct: 0, wrong: 0, blank: 0, total: 0 });
@@ -1137,6 +1139,11 @@
         item.total += row.total;
       });
       return [...grouped.values()].sort((a, b) => a.subject.localeCompare(b.subject, "id") || a.topic.localeCompare(b.topic, "id"));
+    }
+
+    function normalizeDrillMaterial(value) {
+      const text = String(value ?? "").trim();
+      return !text || text.toLowerCase() === "null" ? "Materi Random" : text;
     }
 
     function drillVisibleDates(month, week, rows) {
