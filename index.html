@@ -1,0 +1,1745 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoring Kesiswaan BAHER</title>
+  <script src="chart.umd.min.js"></script>
+  <script src="attendance-data.js"></script>
+  <style>
+    :root {
+      --bg: #eef8fd;
+      --panel: #ffffff;
+      --ink: #13202f;
+      --muted: #64748b;
+      --line: #d7e7f2;
+      --blue: #00809d;
+      --blue-dark: #007fc7;
+      --green: #10B981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --violet: #7c5ce7;
+      --shadow: 0 16px 42px rgba(0, 127, 199, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+    header { background: linear-gradient(135deg, var(--blue), var(--green)); color: #fff; position: sticky; top: 0; z-index: 10; box-shadow: 0 10px 30px rgba(0, 127, 199, 0.22); }
+    .wrap { width: min(1440px, calc(100% - 32px)); margin: 0 auto; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 0 8px; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    h1 { margin: 0; font-size: 22px; line-height: 1.15; letter-spacing: 0; }
+    h2 { margin: 0; font-size: 16px; letter-spacing: 0; }
+    .subtitle { margin-top: 2px; color: rgba(255, 255, 255, 0.86); font-size: 12px; }
+    .actions, .table-tools { display: flex; gap: 10px; align-items: center; }
+    .nav-tabs { display: flex; gap: 8px; padding: 0 0 10px; overflow-x: auto; }
+    .nav-tab { border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.14); color: #fff; white-space: nowrap; }
+    .nav-tab.active { background: #fff; color: var(--blue); border-color: #fff; }
+    .rg-logo { width: 96px; height: auto; display: block; background: #fff; border-radius: 8px; padding: 4px 6px; box-shadow: 0 6px 18px rgba(19, 32, 47, 0.12); }
+    button { border: 1px solid var(--line); background: #fff; color: var(--ink); height: 36px; padding: 0 12px; border-radius: 8px; font-weight: 750; cursor: pointer; }
+    button.primary { color: #fff; background: var(--blue-dark); border-color: var(--blue-dark); }
+    button.refresh { color: var(--blue-dark); border-color: rgba(0, 127, 199, 0.22); }
+    button.download-pdf { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: #fff; background: #F58220; border-color: #F58220; min-width: 126px; }
+    button:disabled { opacity: 0.62; cursor: progress; }
+    main { padding: 22px 0 34px; }
+    body.locked header, body.locked main { display: none; }
+    .access-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: linear-gradient(135deg, var(--blue), var(--green)); }
+    .access-card { width: min(420px, 100%); background: #fff; border-radius: 8px; padding: 24px; box-shadow: 0 20px 60px rgba(19, 32, 47, 0.2); }
+    .access-card img { width: 120px; height: auto; display: block; margin-bottom: 18px; }
+    .access-card h2 { font-size: 22px; margin-bottom: 8px; }
+    .access-card p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+    .access-card form { display: grid; gap: 12px; }
+    .access-error { color: var(--red); font-size: 13px; min-height: 18px; }
+
+    .filters { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+    label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    input, select { width: 100%; min-height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font: inherit; font-weight: 650; }
+    select[multiple] { height: 92px; padding: 7px 10px; }
+    option { padding: 5px 6px; }
+    input:focus, select:focus { outline: 3px solid rgba(0, 127, 199, 0.22); border-color: var(--blue); }
+
+    .stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-height: 112px; box-shadow: var(--shadow); }
+    .stat .label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .stat .value { margin-top: 8px; font-size: 30px; font-weight: 850; line-height: 1.05; }
+    .stat .hint { margin-top: 8px; color: var(--muted); font-size: 12px; }
+
+    .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; margin-bottom: 16px; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); min-width: 0; }
+    .view[hidden] { display: none; }
+    .placeholder { padding: 28px; color: var(--muted); }
+    .placeholder h2 { color: var(--ink); font-size: 20px; margin-bottom: 8px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); gap: 12px; }
+    .chartbox { height: 320px; padding: 16px; }
+    .chart-controls { display: flex; gap: 8px; align-items: center; }
+    .chart-controls select { height: 34px; min-height: 34px; min-width: 118px; }
+    .table-wrap { overflow: auto; max-height: 560px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th:nth-child(n+5), td:nth-child(n+5) { text-align: center; }
+    th { position: sticky; top: 0; background: #f4fbff; color: var(--muted); z-index: 2; }
+    td.name { min-width: 250px; white-space: normal; font-weight: 400; }
+    .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #e9f8ff; color: var(--blue-dark); }
+    .absence-list { display: grid; gap: 10px; padding: 16px; }
+    .absence-item { display: grid; grid-template-columns: 1fr 110px; gap: 12px; align-items: center; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; }
+    .absence-date { font-weight: 400; font-size: 13px; }
+    .absence-meta { color: var(--muted); font-size: 12px; }
+    .status-badge { display: inline-flex; align-items: center; justify-content: center; width: fit-content; min-width: 62px; height: 26px; padding: 0 9px; border-radius: 999px; color: #fff; font-size: 12px; font-weight: 850; }
+    .status-Alpa { background: var(--red); }
+    .status-Izin { background: #F58220; }
+    .status-Sakit { background: var(--violet); }
+    .good { color: var(--green); }
+    .warn { color: var(--amber); }
+    .bad { color: var(--red); }
+    .blue { color: var(--blue-dark); }
+    .permit { color: #F58220; }
+    .ideal { color: #64748B; }
+    .violet { color: var(--violet); }
+    .empty { padding: 28px; color: var(--muted); text-align: center; }
+    .date-grid { display: grid; gap: 10px; padding: 16px; }
+    .date-row { width: 100%; min-height: 62px; display: grid; grid-template-columns: minmax(230px, 1.7fr) repeat(6, minmax(92px, 1fr)); gap: 8px; align-items: stretch; padding: 9px; overflow: hidden; text-align: left; background: #fff; border-color: #cfe5f4; }
+    .date-row.active { border-color: var(--blue); background: #f7fdff; outline: 3px solid rgba(0, 127, 199, 0.16); }
+    .date-cell { display: flex; align-items: center; justify-content: space-between; min-width: 0; padding: 10px 12px; border-radius: 8px; color: var(--muted); font-size: 13px; font-weight: 800; background: #f8fbfd; }
+    .date-cell:first-child { justify-content: flex-start; color: var(--ink); font-size: 14px; font-weight: 850; background: transparent; }
+    .date-cell strong { color: var(--ink); font-size: 18px; margin-left: 6px; }
+    .date-cell.target { background: #f1f5f9; }
+    .date-cell.correct { background: #ecfdf5; color: #047857; }
+    .date-cell.wrong { background: #fef2f2; color: #b91c1c; }
+    .date-cell.blank { background: #f5f3ff; color: #6d28d9; }
+    .date-cell.total { background: #eff6ff; color: #1d4ed8; }
+    .date-cell.percent { background: #fff7ed; color: #c2410c; }
+    .date-cell.correct strong { color: #10B981; }
+    .date-cell.wrong strong { color: var(--red); }
+    .date-cell.blank strong { color: var(--violet); }
+    .date-cell.total strong { color: #2563eb; }
+    .date-cell.percent strong { color: #F58220; }
+    .sub-tabs { display: flex; gap: 8px; padding: 16px 16px 0; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; box-shadow: var(--shadow); }
+    .sub-tab { background: #eef8fd; color: var(--blue-dark); border-color: #cfe5f4; min-width: 120px; }
+    .sub-tab.active { background: var(--blue-dark); color: #fff; border-color: var(--blue-dark); }
+    .drill-filters { border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: var(--shadow); }
+    #drillRowsWrap table { border-collapse: separate; border-spacing: 0; }
+    #drillRowsWrap th { background: #f0f8fc; font-size: 13px; text-transform: uppercase; }
+    #drillRowsWrap td { background: #fff; }
+    #drillRowsWrap tbody tr:nth-child(even) td { background: #fbfdff; }
+    #drillRowsWrap tbody tr:hover td { background: #f3fbff; }
+    #drillRowsWrap td.metric { font-weight: 850; border-radius: 0; }
+    #drillRowsWrap td.metric-target { color: #64748B; }
+    #drillRowsWrap td.metric-correct { color: #10B981; background: #f0fdf4; }
+    #drillRowsWrap td.metric-wrong { color: #ef4444; background: #fff5f5; }
+    #drillRowsWrap td.metric-blank { color: #7c5ce7; background: #f7f5ff; }
+    #drillRowsWrap td.metric-total { color: #13202f; background: #f8fafc; }
+    #drillRowsWrap td.metric-percent { color: #F58220; background: #fff7ed; }
+    .student-subject-detail { overflow: auto; margin: -2px 9px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .student-subject-detail table { width: 100%; border-collapse: collapse; }
+    .student-subject-detail th { background: #f0f8fc; color: var(--muted); font-size: 13px; text-transform: uppercase; }
+    .student-subject-detail td { background: #fff; }
+    .student-subject-detail th, .student-subject-detail td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: center; }
+    .student-subject-detail th:first-child, .student-subject-detail td:first-child, .student-subject-detail th:nth-child(2), .student-subject-detail td:nth-child(2) { text-align: left; }
+    .leaderboard-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; padding: 14px; align-items: stretch; }
+    .leaderboard-card { min-height: 236px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; overflow: hidden; display: grid; grid-template-rows: auto repeat(3, minmax(58px, 1fr)); }
+    .leaderboard-grade { padding: 10px 12px; font-size: 16px; font-weight: 900; color: var(--blue-dark); background: #e9f8ff; border-bottom: 1px solid var(--line); }
+    .leaderboard-item { min-height: 58px; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; align-items: center; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+    .leaderboard-item:last-child { border-bottom: 0; }
+    .leaderboard-rank { display: none; }
+    .leaderboard-name { display: -webkit-box; min-width: 0; font-size: 13px; line-height: 1.2; font-weight: 850; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .score-1 { color: #f59e0b !important; background: #fffbeb; border-color: #fbbf24; }
+    .score-2 { color: #64748b !important; background: #f8fafc; border-color: #cbd5e1; }
+    .score-3 { color: #b7791f !important; background: #fff7ed; border-color: #d69e2e; }
+    .leaderboard-meta { color: var(--muted); font-size: 11px; line-height: 1.2; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .leaderboard-score { display: inline-flex; align-items: center; justify-content: flex-start; justify-self: start; color: #10B981; font-weight: 900; font-size: 16px; line-height: 1; text-align: left; }
+    .detail-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; padding: 16px; }
+    .detail-item { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fbfdff; }
+    .detail-label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
+    .detail-value { margin-top: 8px; font-size: 26px; font-weight: 850; }
+
+    @media (max-width: 1120px) {
+      .filters { grid-template-columns: 1fr 1fr; }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+      .leaderboard-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .wrap { width: min(100% - 20px, 1440px); }
+      .topbar, .panel-head { align-items: flex-start; flex-direction: column; }
+      .brand { align-items: flex-start; flex-direction: column; }
+      .actions, .table-tools, .nav-tabs { width: 100%; }
+      .actions button { flex: 1; }
+      .rg-logo { width: 116px; }
+      .filters, .stats { grid-template-columns: 1fr; }
+      .leaderboard-grid { grid-template-columns: 1fr; }
+      .detail-grid { grid-template-columns: 1fr 1fr; }
+      .date-row { grid-template-columns: 1fr 1fr; }
+      .date-cell:first-child { grid-column: 1 / -1; }
+      .table-tools { flex-direction: column; }
+    }
+  </style>
+</head>
+<body class="locked">
+  <section class="access-screen" id="accessScreen">
+    <div class="access-card">
+      <img src="ruangguru-logo.svg" alt="Ruangguru">
+      <h2>Masukkan Kode Akses</h2>
+      <p>Gunakan kode akses untuk membuka Monitoring Kehadiran Siswa BAHER.</p>
+      <form id="accessForm">
+        <input id="accessCode" type="password" placeholder="Kode akses" autocomplete="current-password">
+        <button class="primary" type="submit">Masuk</button>
+        <div class="access-error" id="accessError"></div>
+      </form>
+    </div>
+  </section>
+  <header>
+    <div class="wrap topbar">
+      <div class="brand">
+        <img class="rg-logo" src="ruangguru-logo.svg" alt="Ruangguru">
+        <div>
+          <h1>Monitoring Kesiswaan BAHER</h1>
+          <div class="subtitle" id="dataSubtitle">Memuat data presensi...</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="refresh" id="refreshBtn">Refresh</button>
+        <button id="resetBtn">Reset</button>
+        <button class="primary" id="downloadBtn">Unduh CSV</button>
+      </div>
+    </div>
+    <nav class="wrap nav-tabs" aria-label="Menu monitoring">
+      <button class="nav-tab active" data-view="attendanceView">Kehadiran Siswa</button>
+      <button class="nav-tab" data-view="drillView">Drill Soal</button>
+      <button class="nav-tab" data-view="tryoutView">Tryout Siswa</button>
+      <button class="nav-tab" data-view="prepostView">Pre test & Post test Siswa</button>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="view" id="attendanceView">
+    <section class="filters" aria-label="Filter dashboard">
+      <label>Cari siswa<input id="searchInput" type="search" list="studentSuggestions" placeholder="Nama siswa"><datalist id="studentSuggestions"></datalist></label>
+      <label>Kelas<select id="classSelect"></select></label>
+      <label>Bulan<select id="monthSelect"></select></label>
+      <label>Week<select id="weekSelect"></select></label>
+      <label>Status<select id="statusSelect"><option value="">Semua status</option><option value="Hadir">Hadir</option><option value="Izin">Izin</option><option value="Sakit">Sakit</option><option value="Alpa">Alpa</option></select></label>
+      <label>Periode<select id="periodSelect"><option value="">Semua bulan/week</option></select></label>
+    </section>
+
+    <section class="stats" aria-label="Ringkasan">
+      <div class="stat"><div class="label">Siswa</div><div class="value" id="studentCount">0</div><div class="hint">sesuai filter</div></div>
+      <div class="stat"><div class="label">Sesi Ideal</div><div class="value ideal" id="idealCount">0</div><div class="hint">sesi wajib hadir</div></div>
+      <div class="stat"><div class="label">Hadir</div><div class="value good" id="presentCount">0</div><div class="hint" id="presentHint">0%</div></div>
+      <div class="stat"><div class="label">Izin</div><div class="value permit" id="permitCount">0</div><div class="hint">hari izin</div></div>
+      <div class="stat"><div class="label">Sakit</div><div class="value violet" id="sickCount">0</div><div class="hint">hari sakit</div></div>
+      <div class="stat"><div class="label">Alpa</div><div class="value bad" id="absentCount">0</div><div class="hint">hari tanpa keterangan</div></div>
+    </section>
+
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="trendTitle">Perbandingan Sesi Ideal dan Hadir</h2>
+          <div class="chart-controls">
+            <select id="chartMode">
+              <option value="bar">Batang</option>
+              <option value="line">Garis</option>
+              <option value="percentage">Persentase Week</option>
+              <option value="classPercentage">Persentase Kelas</option>
+            </select>
+            <span class="pill" id="periodLabel">-</span>
+          </div>
+        </div>
+        <div class="chartbox"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Komposisi Status</h2><span class="pill" id="recordCount">0 entri</span></div>
+        <div class="chartbox"><canvas id="statusChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="panel" id="absencePanel" hidden>
+      <div class="panel-head">
+        <h2>Tanggal Tidak Hadir</h2>
+        <span class="pill" id="absenceCount">0 tanggal</span>
+      </div>
+      <div class="absence-list" id="absenceList"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>Rekap Per Siswa, Bulan, Week</h2>
+        <div class="table-tools">
+          <input id="tableSearch" type="search" placeholder="Cari di tabel">
+          <select id="sortSelect">
+            <option value="monthWeek:asc">Bulan & Week</option>
+            <option value="attendanceRate:desc">Kehadiran tertinggi</option>
+            <option value="attendanceRate:asc">Kehadiran terendah</option>
+            <option value="idealSessions:desc">Sesi ideal terbanyak</option>
+            <option value="absent:desc">Alpa terbanyak</option>
+            <option value="name:asc">Nama A-Z</option>
+          </select>
+          <button id="downloadPdfBtn" class="download-pdf" title="Unduh PDF" aria-label="Unduh PDF"><span>↓</span><span>PDF</span></button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Kelas</th>
+              <th>Bulan</th>
+              <th>Week</th>
+              <th>Sesi Ideal</th>
+              <th>Hadir</th>
+              <th>Izin</th>
+              <th>Sakit</th>
+              <th>Alpa</th>
+              <th>% Hadir</th>
+            </tr>
+          </thead>
+          <tbody id="studentRows"></tbody>
+        </table>
+        <div class="empty" id="emptyState" hidden>Tidak ada data yang cocok dengan filter.</div>
+      </div>
+    </section>
+    </section>
+
+    <section class="view" id="drillView" hidden>
+      <div class="sub-tabs" aria-label="Mode drill soal">
+        <button class="sub-tab active" data-drill-mode="student">Siswa</button>
+        <button class="sub-tab" data-drill-mode="class">Kelas</button>
+      </div>
+      <section class="filters drill-filters" aria-label="Filter drill soal">
+        <label id="drillStudentFilter">Nama siswa<input id="drillStudentInput" type="search" list="drillStudentSuggestions" placeholder="Ketik nama siswa"><datalist id="drillStudentSuggestions"></datalist></label>
+        <label id="drillAutoClassFilter">Kelas siswa<input id="drillAutoClassInput" type="text" placeholder="Otomatis" readonly></label>
+        <label id="drillClassFilter" hidden>Kelas<select id="drillClassSelect"></select></label>
+        <label>Month<select id="drillMonthSelect"></select></label>
+        <label>Week<select id="drillWeekSelect"></select></label>
+        <button class="refresh" id="drillRefreshBtn">Refresh Drill</button>
+      </section>
+      <div class="panel" id="drillLeaderboardPanel" hidden>
+        <div class="panel-head">
+          <h2>Leaderboard Persentase Tertinggi</h2>
+          <span class="pill">Top 3 per grade</span>
+        </div>
+        <div class="leaderboard-grid" id="drillLeaderboardGrid"></div>
+      </div>
+      <div class="panel" id="drillSummaryPanel" hidden>
+        <div class="panel-head">
+          <h2 id="drillDetailTitle">Detail Drill</h2>
+          <span class="pill" id="drillTargetNote">Target</span>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">Target</div><div class="detail-value ideal" id="drillTarget">0</div></div>
+          <div class="detail-item"><div class="detail-label">Benar</div><div class="detail-value good" id="drillCorrect">0</div></div>
+          <div class="detail-item"><div class="detail-label">Salah</div><div class="detail-value bad" id="drillWrong">0</div></div>
+          <div class="detail-item"><div class="detail-label">Blank</div><div class="detail-value violet" id="drillBlank">0</div></div>
+          <div class="detail-item"><div class="detail-label">Total</div><div class="detail-value" id="drillTotal">0</div></div>
+          <div class="detail-item"><div class="detail-label">% Benar</div><div class="detail-value permit" id="drillPercent">0%</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Tanggal Drill Soal</h2>
+          <div class="table-tools">
+            <button id="downloadDrillPdfBtn" class="download-pdf" title="Unduh PDF Drill" aria-label="Unduh PDF Drill"><span>↓</span><span>PDF</span></button>
+            <span class="pill" id="drillDateCount">0 tanggal</span>
+          </div>
+        </div>
+        <div class="date-grid" id="drillDateGrid"></div>
+      </div>
+      <div class="panel" id="drillDetailPanel" hidden>
+        <div class="table-wrap" id="drillRowsWrap">
+          <table>
+            <thead id="drillRowsHead">
+              <tr>
+                <th>Nama</th>
+                <th>Kelas</th>
+                <th>Target</th>
+                <th>Benar</th>
+                <th>Salah</th>
+                <th>Blank</th>
+                <th>Total</th>
+                <th>% Benar</th>
+              </tr>
+            </thead>
+            <tbody id="drillRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="tryoutView" hidden>
+      <div class="panel placeholder">
+        <h2>Tryout Siswa</h2>
+        <p>Menu ini disiapkan untuk monitoring tryout siswa.</p>
+      </div>
+    </section>
+
+    <section class="view" id="prepostView" hidden>
+      <div class="panel placeholder">
+        <h2>Pre test & Post test Siswa</h2>
+        <p>Menu ini disiapkan untuk monitoring pre test dan post test siswa.</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SHEET_PROXY_URL = "/.netlify/functions/sheet";
+    const USE_NETLIFY_PROXY = location.hostname.includes("netlify");
+    let data = normalizeData(window.ATTENDANCE_DATA || { students: [], weeks: [], studentWeeks: [], records: [] });
+    let drillData = [];
+    let drillLoaded = false;
+    let selectedDrillDate = "";
+    let currentDrillDates = [];
+    let drillMode = "student";
+    let byId = new Map();
+    let classes = [];
+    let months = [];
+    let weekNames = [];
+    const statusColors = { Hadir: "#10B981", Izin: "#F58220", Sakit: "#7c5ce7", Alpa: "#ef4444" };
+    const numberFmt = new Intl.NumberFormat("id-ID");
+    let trendChart;
+    let statusChart;
+    const ACCESS_CODE = "BAHER2026";
+
+    const $ = (id) => document.getElementById(id);
+    const inputIds = ["searchInput", "classSelect", "monthSelect", "weekSelect", "statusSelect", "periodSelect", "tableSearch", "sortSelect", "chartMode"];
+
+    function init() {
+      initAccessGate();
+      rebuildIndexes();
+      fillOptions();
+      inputIds.map($).forEach((input) => {
+        input.addEventListener("input", handleFilterInput);
+        input.addEventListener("change", handleFilterInput);
+      });
+      $("resetBtn").addEventListener("click", resetFilters);
+      $("downloadBtn").addEventListener("click", downloadCsv);
+      $("downloadPdfBtn").addEventListener("click", downloadStudentPdf);
+      $("downloadDrillPdfBtn").addEventListener("click", downloadDrillPdf);
+      $("refreshBtn").addEventListener("click", refreshData);
+      $("drillRefreshBtn").addEventListener("click", () => loadDrillData(true));
+      ["drillStudentInput", "drillClassSelect", "drillMonthSelect", "drillWeekSelect"].forEach((id) => {
+        $(id).addEventListener("input", renderDrill);
+        $(id).addEventListener("change", renderDrill);
+      });
+      document.querySelectorAll("[data-drill-mode]").forEach((tab) => tab.addEventListener("click", () => setDrillMode(tab.dataset.drillMode)));
+      document.querySelectorAll(".nav-tab").forEach((tab) => tab.addEventListener("click", () => showView(tab.dataset.view)));
+      render();
+    }
+
+    function setDrillMode(mode) {
+      drillMode = mode === "class" ? "class" : "student";
+      document.querySelectorAll("[data-drill-mode]").forEach((tab) => tab.classList.toggle("active", tab.dataset.drillMode === drillMode));
+      $("drillStudentFilter").hidden = drillMode !== "student";
+      $("drillAutoClassFilter").hidden = drillMode !== "student";
+      $("drillClassFilter").hidden = drillMode !== "class";
+      if (drillMode === "student") $("drillClassSelect").value = "";
+      if (drillMode === "class") $("drillStudentInput").value = "";
+      selectedDrillDate = "";
+      renderDrill();
+    }
+
+    function showView(viewId) {
+      document.querySelectorAll(".view").forEach((view) => {
+        view.hidden = view.id !== viewId;
+      });
+      document.querySelectorAll(".nav-tab").forEach((tab) => {
+        tab.classList.toggle("active", tab.dataset.view === viewId);
+      });
+      if (viewId === "drillView" && !drillLoaded) loadDrillData();
+    }
+
+
+    function initAccessGate() {
+      const getAccess = () => {
+        try {
+          return sessionStorage.getItem("baherAccess");
+        } catch (error) {
+          return "";
+        }
+      };
+      const setAccess = () => {
+        try {
+          sessionStorage.setItem("baherAccess", "ok");
+        } catch (error) {
+          return false;
+        }
+        return true;
+      };
+
+      if (getAccess() === "ok") {
+        document.body.classList.remove("locked");
+        $("accessScreen").hidden = true;
+        $("accessScreen").style.display = "none";
+      }
+      $("accessForm").addEventListener("submit", (event) => {
+        event.preventDefault();
+        if ($("accessCode").value.trim().toUpperCase() === ACCESS_CODE) {
+          setAccess();
+          $("accessScreen").hidden = true;
+          $("accessScreen").style.display = "none";
+          document.body.classList.remove("locked");
+          $("accessError").textContent = "";
+        } else {
+          $("accessError").textContent = "Kode akses salah.";
+          $("accessCode").select();
+        }
+      });
+    }
+
+    function rebuildIndexes() {
+      byId = new Map(data.students.map((student) => [student.id, student]));
+      classes = [...new Set(data.students.map((student) => student.class).filter(Boolean))].sort(compareClass);
+      months = [...new Set(data.weeks.map((week) => week.month).filter(Boolean))];
+      weekNames = [...new Set(data.weeks.map((week) => week.week).filter(Boolean))].sort((a, b) => weekNumber(a) - weekNumber(b));
+    }
+
+    function fillOptions() {
+      $("dataSubtitle").textContent = `${numberFmt.format(data.students.length)} siswa, ${numberFmt.format(data.weeks.length)} periode bulan/week, ${numberFmt.format(data.records.length)} entri presensi`;
+      $("classSelect").innerHTML = `<option value="">Semua kelas</option>` + classes.map((kelas) => `<option value="${escapeHtml(kelas)}">${escapeHtml(kelas)}</option>`).join("");
+      $("monthSelect").innerHTML = `<option value="">Semua bulan</option>` + months.map((month) => `<option value="${escapeHtml(month)}">${escapeHtml(month)}</option>`).join("");
+      $("weekSelect").innerHTML = `<option value="">Semua week</option>` + weekNames.map((week) => `<option value="${escapeHtml(week)}">${escapeHtml(week)}</option>`).join("");
+      $("periodSelect").innerHTML = `<option value="">Semua bulan/week</option>` + data.weeks.map((period) => `<option value="${escapeHtml(period.key)}">${escapeHtml(period.label)}</option>`).join("");
+      $("studentSuggestions").innerHTML = data.students.map((student) => `<option value="${escapeHtml(student.name)}"></option>`).join("");
+    }
+
+    function handleFilterInput(event) {
+      if (event.target.id === "periodSelect" && event.target.value) {
+        $("monthSelect").value = "";
+        $("weekSelect").value = "";
+      }
+      if ((event.target.id === "monthSelect" || event.target.id === "weekSelect") && event.target.value) {
+        $("periodSelect").value = "";
+      }
+      render();
+    }
+
+    function currentFilters() {
+      return {
+        search: $("searchInput").value.trim().toLowerCase(),
+        kelas: $("classSelect").value,
+        month: $("monthSelect").value,
+        week: $("weekSelect").value,
+        status: $("statusSelect").value,
+        period: $("periodSelect").value,
+        tableSearch: $("tableSearch").value.trim().toLowerCase(),
+        sort: $("sortSelect").value
+      };
+    }
+
+    function weekMatches(item, filters) {
+      const student = byId.get(item.studentId);
+      if (!student) return false;
+      if (filters.search && !`${student.name} ${student.email}`.toLowerCase().includes(filters.search)) return false;
+      if (filters.kelas && student.class !== filters.kelas) return false;
+      if (filters.period && item.weekKey !== filters.period) return false;
+      if (filters.month && item.month !== filters.month) return false;
+      if (filters.week && item.week !== filters.week) return false;
+      return true;
+    }
+
+    function filteredRecords(filters) {
+      return data.records.filter((record) => weekMatches(record, filters) && (!filters.status || record.status === filters.status));
+    }
+
+    function filteredWeekRows(filters) {
+      const records = filteredRecords(filters);
+      const grouped = new Map();
+      data.studentWeeks.filter((item) => weekMatches(item, filters)).forEach((item) => {
+        grouped.set(`${item.studentId}|${item.weekKey}`, { ...item, permit: 0, sick: 0, absent: 0, present: 0, total: 0, sessions: 0 });
+      });
+      records.forEach((record) => {
+        const key = `${record.studentId}|${record.weekKey}`;
+        if (!grouped.has(key)) return;
+        const row = grouped.get(key);
+        row.total += 1;
+        row.sessions += record.sessions || 0;
+        if (record.status === "Hadir") row.present += record.sessions || 0;
+        if (record.status === "Izin") row.permit += 1;
+        if (record.status === "Sakit") row.sick += 1;
+        if (record.status === "Alpa") row.absent += 1;
+      });
+      let rows = [...grouped.values()].map((row) => ({
+        ...row,
+        absent: Math.max(row.absent, (row.idealSessions || 0) - row.present - row.permit - row.sick),
+        attendanceRate: row.idealSessions ? row.present / row.idealSessions : (row.total ? row.present / row.total : 0),
+        monthWeek: `${String(row.periodOrder ?? 999).padStart(3, "0")}-${row.student}`
+      }));
+      if (filters.status) {
+        rows = rows.filter((row) => {
+          if (filters.status === "Hadir") return row.present > 0;
+          if (filters.status === "Izin") return row.permit > 0;
+          if (filters.status === "Sakit") return row.sick > 0;
+          if (filters.status === "Alpa") return row.absent > 0;
+          return row.total > 0;
+        });
+      }
+      if (filters.tableSearch) {
+        rows = rows.filter((row) => `${row.student} ${row.class} ${row.month} ${row.week}`.toLowerCase().includes(filters.tableSearch));
+      }
+      const [key, direction] = filters.sort.split(":");
+      rows.sort((a, b) => {
+        const av = key === "name" ? a.student : a[key];
+        const bv = key === "name" ? b.student : b[key];
+        const result = typeof av === "string" ? av.localeCompare(bv, "id") : av - bv;
+        return direction === "desc" ? -result : result;
+      });
+      return rows;
+    }
+
+    function render() {
+      const filters = currentFilters();
+      const records = filteredRecords(filters);
+      const rows = filteredWeekRows(filters);
+      const totals = countStatusesFromRows(rows);
+      const idealTotal = rows.reduce((sum, row) => sum + (row.idealSessions || 0), 0);
+      const presentRate = idealTotal ? Math.round((totals.Hadir / idealTotal) * 100) : 0;
+      $("studentCount").textContent = numberFmt.format(new Set(rows.map((row) => row.studentId)).size);
+      $("idealCount").textContent = numberFmt.format(idealTotal);
+      $("presentCount").textContent = numberFmt.format(totals.Hadir);
+      $("permitCount").textContent = numberFmt.format(totals.Izin);
+      $("sickCount").textContent = numberFmt.format(totals.Sakit);
+      $("absentCount").textContent = numberFmt.format(totals.Alpa);
+      $("presentHint").textContent = `${presentRate}% dari sesi ideal`;
+      $("recordCount").textContent = `${numberFmt.format(records.length)} entri`;
+      $("periodLabel").textContent = periodText(filters);
+      renderTable(rows);
+      renderAbsences(records, filters);
+      renderCharts(records, rows);
+    }
+
+    function countStatuses(records) {
+      return records.reduce((acc, record) => {
+        if (record.status === "Hadir") acc.Hadir += record.sessions || 0;
+        if (record.status === "Izin") acc.Izin += 1;
+        if (record.status === "Sakit") acc.Sakit += 1;
+        if (record.status === "Alpa") acc.Alpa += 1;
+        return acc;
+      }, { Hadir: 0, Izin: 0, Sakit: 0, Alpa: 0 });
+    }
+
+    function countStatusesFromRows(rows) {
+      return rows.reduce((acc, row) => {
+        acc.Hadir += row.present || 0;
+        acc.Izin += row.permit || 0;
+        acc.Sakit += row.sick || 0;
+        acc.Alpa += row.absent || 0;
+        return acc;
+      }, { Hadir: 0, Izin: 0, Sakit: 0, Alpa: 0 });
+    }
+
+    function renderTable(rows) {
+      $("emptyState").hidden = rows.length > 0;
+      $("studentRows").innerHTML = rows.map((row) => {
+        const cls = row.attendanceRate >= 0.8 ? "good" : row.attendanceRate >= 0.6 ? "warn" : "bad";
+        return `<tr>
+          <td class="name">${escapeHtml(row.student)}</td>
+          <td>${escapeHtml(row.class)}</td>
+          <td>${escapeHtml(row.month)}</td>
+          <td>${escapeHtml(row.week)}</td>
+          <td class="ideal">${numberFmt.format(row.idealSessions || 0)}</td>
+          <td class="good">${numberFmt.format(row.present)}</td>
+          <td class="permit">${numberFmt.format(row.permit)}</td>
+          <td class="violet">${numberFmt.format(row.sick)}</td>
+          <td class="bad">${numberFmt.format(row.absent)}</td>
+          <td class="${cls}">${Math.round(row.attendanceRate * 100)}%</td>
+        </tr>`;
+      }).join("");
+    }
+
+    function summarizeByClass(rows) {
+      const grouped = new Map();
+      rows.forEach((row) => {
+        const key = `${row.class}|${row.weekKey}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, { class: row.class, month: row.month, week: row.week, weekKey: row.weekKey, periodOrder: row.periodOrder, students: new Set(), idealSessions: 0, present: 0, permit: 0, sick: 0, absent: 0 });
+        }
+        const item = grouped.get(key);
+        item.students.add(row.studentId);
+        item.idealSessions += row.idealSessions || 0;
+        item.present += row.present;
+        item.permit += row.permit;
+        item.sick += row.sick;
+        item.absent += row.absent;
+      });
+      return [...grouped.values()].map((item) => ({
+        ...item,
+        studentCount: item.students.size,
+        attendanceRate: item.idealSessions ? item.present / item.idealSessions : 0
+      })).sort((a, b) => (a.periodOrder ?? 999) - (b.periodOrder ?? 999) || compareClass(a.class, b.class));
+    }
+
+    function summarizeClassPercentages(rows) {
+      const byClass = new Map();
+      rows.forEach((row) => {
+        if (!byClass.has(row.class)) byClass.set(row.class, { class: row.class, idealSessions: 0, present: 0 });
+        const item = byClass.get(row.class);
+        item.idealSessions += row.idealSessions || 0;
+        item.present += row.present;
+      });
+      return [...byClass.values()]
+        .map((row) => ({ ...row, percentage: row.idealSessions ? Math.round((row.present / row.idealSessions) * 100) : 0 }))
+        .sort((a, b) => compareClass(a.class, b.class));
+    }
+
+    function renderAbsences(records, filters) {
+      const exactStudent = data.students.find((student) => student.name.toLowerCase() === filters.search);
+      $("absencePanel").hidden = !exactStudent;
+      if (!exactStudent) return;
+
+      const absences = records
+        .filter((record) => record.studentId === exactStudent.id && ["Alpa", "Izin", "Sakit"].includes(record.status))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      $("absenceCount").textContent = `${numberFmt.format(absences.length)} tanggal`;
+      $("absenceList").innerHTML = absences.length ? absences.map((record) => `
+        <div class="absence-item">
+          <div>
+            <div class="absence-date">${formatLongDate(record.date)}</div>
+          </div>
+          <span class="status-badge status-${record.status}">${record.status}</span>
+        </div>
+      `).join("") : `<div class="empty">Tidak ada tanggal tidak hadir pada filter ini.</div>`;
+    }
+
+    function renderCharts(records, rows) {
+      const rowKeys = new Set(rows.map((row) => row.weekKey));
+      const weekly = new Map(data.weeks.filter((week) => rowKeys.has(week.key)).map((week) => [week.key, { label: week.label, ideal: 0, present: 0 }]));
+      rows.forEach((row) => {
+        if (!weekly.has(row.weekKey)) return;
+        weekly.get(row.weekKey).ideal += row.idealSessions || 0;
+      });
+      records.forEach((record) => {
+        if (record.status !== "Hadir" || !weekly.has(record.weekKey)) return;
+        weekly.get(record.weekKey).present += record.sessions || 0;
+      });
+      const labels = [...weekly.values()].map((item) => item.label);
+      const idealData = [...weekly.values()].map((item) => item.ideal);
+      const presentData = [...weekly.values()].map((item) => item.present);
+      const percentageData = [...weekly.values()].map((item) => item.ideal ? Math.round((item.present / item.ideal) * 100) : 0);
+      const chartMode = $("chartMode").value;
+      const isPercentage = chartMode === "percentage";
+      const isClassPercentage = chartMode === "classPercentage";
+      const classRows = summarizeClassPercentages(rows);
+      $("trendTitle").textContent = isClassPercentage ? "Persentase Kehadiran Per Kelas" : isPercentage ? "Persentase Kehadiran Per Week" : "Perbandingan Sesi Ideal dan Hadir";
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart($("trendChart"), {
+        type: isPercentage ? "line" : isClassPercentage ? "bar" : chartMode,
+        data: {
+          labels: isClassPercentage ? classRows.map((row) => row.class) : labels,
+          datasets: isClassPercentage ? [
+            { label: "% Kehadiran", data: classRows.map((row) => row.percentage), borderColor: "#10B981", backgroundColor: "#10B981", tension: 0.28, pointRadius: 3, fill: false }
+          ] : isPercentage ? [
+            { label: "% Kehadiran", data: percentageData, borderColor: "#10B981", backgroundColor: "rgba(16, 185, 129, 0.12)", tension: 0.28, pointRadius: 3, fill: true }
+          ] : [
+            { label: "Sesi Ideal", data: idealData, borderColor: "#64748B", backgroundColor: chartMode === "line" ? "rgba(100, 116, 139, 0.12)" : "#64748B", tension: 0.28, pointRadius: 3, fill: false },
+            { label: "Hadir", data: presentData, borderColor: "#10B981", backgroundColor: chartMode === "line" ? "rgba(16, 185, 129, 0.12)" : "#10B981", tension: 0.28, pointRadius: 3, fill: false }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { position: "bottom" } },
+          scales: { y: { beginAtZero: true, max: isPercentage || isClassPercentage ? 100 : undefined, ticks: { precision: 0, callback: isPercentage || isClassPercentage ? (value) => `${value}%` : undefined } } }
+        }
+      });
+      const totals = countStatuses(records);
+      if (statusChart) statusChart.destroy();
+      statusChart = new Chart($("statusChart"), {
+        type: "doughnut",
+        data: { labels: ["Hadir", "Izin", "Sakit", "Alpa"], datasets: [{ data: [totals.Hadir, totals.Izin, totals.Sakit, totals.Alpa], backgroundColor: [statusColors.Hadir, statusColors.Izin, statusColors.Sakit, statusColors.Alpa] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } }
+      });
+    }
+
+    async function loadDrillData(force = false) {
+      if (drillLoaded && !force) return;
+      const button = $("drillRefreshBtn");
+      const previous = button.textContent;
+      button.disabled = true;
+      button.textContent = "Memuat...";
+      try {
+        drillData = buildDrillData(await loadSheetRows("246622240"));
+        drillLoaded = true;
+        selectedDrillDate = "";
+        fillDrillFilters();
+        renderDrill();
+      } catch (error) {
+        drillData = [];
+        drillLoaded = true;
+        selectedDrillDate = "";
+        fillDrillFilters();
+        renderDrill();
+        alert(`Data Raw Drill gagal dimuat: ${error.message || error}. Filter kelas, nama siswa, month, dan week tetap tersedia dari data presensi.`);
+      } finally {
+        button.disabled = false;
+        button.textContent = previous;
+      }
+    }
+
+    function buildDrillData(rows) {
+      const headerRowIndex = findDrillHeaderRow(rows);
+      const header = (rows[headerRowIndex] || rows[0] || []).map((cell) => String(cell || "").trim().toLowerCase());
+      const indexOf = (patterns) => header.findIndex((label) => patterns.some((pattern) => label.includes(pattern)));
+      const subjectIndex = 10; // Kolom K
+      const topicIndex = 11; // Kolom L
+      const nameIndex = 21; // Kolom V
+      const classIndex = 6; // Kolom G
+      const dateIndex = 16; // Kolom Q
+      const monthIndex = 17; // Kolom R
+      const weekIndex = 19; // Kolom T
+      const correctIndex = 12; // Kolom M
+      const wrongIndex = 13; // Kolom N
+      const blankIndex = 14; // Kolom O
+      const totalIndex = 15; // Kolom P
+
+      return rows.map((row) => {
+        const student = valueAt(row, nameIndex);
+        const studentClass = classFromStudent(student) || normalizeDrillClass(valueAt(row, classIndex));
+        const rawDate = valueAt(row, dateIndex);
+        if (!student || !studentClass || isHeaderLike(student) || isHeaderLike(studentClass)) return null;
+        const correct = toNumber(valueAt(row, correctIndex));
+        const wrong = toNumber(valueAt(row, wrongIndex));
+        const blank = toNumber(valueAt(row, blankIndex));
+        const total = totalIndex >= 0 ? toNumber(valueAt(row, totalIndex)) : correct + wrong + blank;
+        const month = valueAt(row, monthIndex);
+        const week = valueAt(row, weekIndex);
+        const date = normalizeDrillDate(rawDate || `${month} ${week}`.trim());
+        return {
+          student,
+          class: studentClass,
+          subject: valueAt(row, subjectIndex) || "-",
+          topic: valueAt(row, topicIndex) || "-",
+          date,
+          dateLabel: safeFormatLongDate(date),
+          month: month || monthNameFromDate(date),
+          week: week || weekFromDate(date),
+          correct,
+          wrong,
+          blank,
+          total,
+          target: drillTarget(studentClass)
+        };
+      }).filter(Boolean);
+    }
+
+    function isHeaderLike(value) {
+      const text = String(value || "").trim().toLowerCase();
+      return ["nama", "nama siswa", "siswa", "kelas", "class"].includes(text);
+    }
+
+    function findDrillHeaderRow(rows) {
+      let bestIndex = 0;
+      let bestScore = -1;
+      rows.slice(0, 12).forEach((row, index) => {
+        const labels = row.map((cell) => String(cell || "").trim().toLowerCase());
+        const has = (patterns) => labels.some((label) => patterns.some((pattern) => label.includes(pattern)));
+        const score = Number(has(["nama", "siswa", "student"])) + Number(has(["tanggal", "timestamp", "date", "tgl", "waktu"])) + Number(has(["benar", "correct"])) + Number(has(["kelas", "class", "rombel"]));
+        if (score > bestScore) {
+          bestScore = score;
+          bestIndex = index;
+        }
+      });
+      return bestIndex;
+    }
+
+    function fillDrillFilters() {
+      const classes = [...new Set([
+        ...data.students.map((student) => student.class),
+        ...drillData.map((row) => row.class)
+      ].filter(Boolean))].sort(compareClass);
+      const months = [...new Set([
+        ...data.weeks.map((week) => week.month),
+        ...drillData.map((row) => row.month)
+      ].filter(Boolean))];
+      const weeks = [...new Set([
+        ...data.weeks.map((week) => week.week),
+        ...drillData.map((row) => row.week)
+      ].filter(Boolean))].sort((a, b) => weekNumber(a) - weekNumber(b));
+      $("drillClassSelect").innerHTML = `<option value="">Semua kelas</option>` + classes.map((kelas) => `<option value="${escapeHtml(kelas)}">${escapeHtml(kelas)}</option>`).join("");
+      $("drillMonthSelect").innerHTML = `<option value="">Semua month</option>` + months.map((month) => `<option value="${escapeHtml(month)}">${escapeHtml(month)}</option>`).join("");
+      $("drillWeekSelect").innerHTML = `<option value="">Semua week</option>` + weeks.map((week) => `<option value="${escapeHtml(week)}">${escapeHtml(week)}</option>`).join("");
+      updateDrillStudentOptions();
+    }
+
+    function updateDrillStudentOptions() {
+      const students = [...new Set([
+        ...data.students.map((student) => student.name),
+        ...drillData.map((row) => row.student)
+      ].filter(Boolean))].sort((a, b) => a.localeCompare(b, "id"));
+      const current = $("drillStudentInput").value;
+      $("drillStudentSuggestions").innerHTML = students.map((student) => `<option value="${escapeHtml(student)}"></option>`).join("");
+    }
+
+    function renderDrill(event) {
+      const selectedStudent = drillMode === "student" ? $("drillStudentInput").value.trim().toLowerCase() : "";
+      const selectedStudentRecord = findSelectedDrillStudent(selectedStudent);
+      const selectedClass = drillMode === "student" ? (selectedStudentRecord?.class || "") : $("drillClassSelect").value;
+      const selectedMonth = $("drillMonthSelect").value;
+      const selectedWeek = $("drillWeekSelect").value;
+      $("drillAutoClassInput").value = selectedClass || "";
+      const rows = drillData.filter((row) => {
+        if (selectedStudent && !row.student.toLowerCase().includes(selectedStudent)) return false;
+        if (drillMode === "class" && selectedClass && row.class !== selectedClass) return false;
+        if (selectedMonth && row.month !== selectedMonth) return false;
+        if (selectedWeek && row.week !== selectedWeek) return false;
+        return true;
+      });
+      const dates = drillVisibleDates(selectedMonth, selectedWeek, rows);
+      currentDrillDates = dates;
+      if (selectedDrillDate && !dates.includes(selectedDrillDate)) selectedDrillDate = "";
+      if (drillMode === "class" && selectedClass && !selectedDrillDate) selectedDrillDate = dates[0] || "";
+      $("drillDateCount").textContent = `${numberFmt.format(dates.length)} tanggal`;
+      $("drillDateGrid").innerHTML = dates.length ? dates.map((date) => renderDrillDateRow(date, rows) + renderStudentSubjectDetail(date, rows)).join("") : `<div class="empty">Tidak ada tanggal sesuai filter.</div>`;
+      renderDrillLeaderboard(rows, dates);
+      renderDrillDetail(rows, selectedClass, selectedStudent, dates);
+    }
+
+    function selectDrillDate(date) {
+      selectedDrillDate = drillMode === "student" && selectedDrillDate === date ? "" : date;
+      renderDrill();
+    }
+
+    function renderDrillDetail(rows, selectedClass = "", selectedStudent = "", aggregateDates = null) {
+      const dates = aggregateDates?.length ? aggregateDates : [selectedDrillDate].filter(Boolean);
+      const selectedRows = rows.filter((row) => dates.includes(row.date));
+      const displayRows = drillDisplayRows(selectedRows, selectedClass, dates[0] || selectedDrillDate, selectedStudent, dates);
+      const isStudentDetail = Boolean(selectedStudent);
+      const shouldShowStudentRows = drillMode !== "student" && Boolean(selectedClass);
+      $("drillSummaryPanel").hidden = !dates.length || !displayRows.length;
+      $("drillDetailPanel").hidden = !dates.length || !displayRows.length || !shouldShowStudentRows;
+      if (!dates.length || !displayRows.length) return;
+      const target = displayRows.reduce((sum, row) => sum + row.target, 0);
+      const correct = displayRows.reduce((sum, row) => sum + row.correct, 0);
+      const wrong = displayRows.reduce((sum, row) => sum + row.wrong, 0);
+      const blank = displayRows.reduce((sum, row) => sum + row.blank, 0);
+      const total = displayRows.reduce((sum, row) => sum + row.total, 0);
+      const dateTitle = dates.length > 1 ? `${numberFmt.format(dates.length)} tanggal` : safeFormatLongDate(dates[0]);
+      $("drillDetailTitle").textContent = `${isStudentDetail ? "Detail Drill Siswa" : selectedClass ? `Detail Drill ${selectedClass}` : "Rekap Drill Semua Siswa"} - ${dateTitle}`;
+      $("drillTargetNote").textContent = "Kelas 12 target 10, lainnya 5";
+      $("drillTarget").textContent = numberFmt.format(target);
+      $("drillCorrect").textContent = numberFmt.format(correct);
+      $("drillWrong").textContent = numberFmt.format(wrong);
+      $("drillBlank").textContent = numberFmt.format(blank);
+      $("drillTotal").textContent = numberFmt.format(total);
+      $("drillPercent").textContent = `${target ? Math.round((correct / target) * 100) : 0}%`;
+      $("drillRowsWrap").hidden = !shouldShowStudentRows;
+      renderDrillRows(displayRows, selectedRows);
+    }
+
+    function renderDrillRows(displayRows, selectedRows) {
+      const isStudentMode = drillMode === "student";
+      const rows = isStudentMode ? summarizeSubjectTopicRows(selectedRows) : displayRows;
+      const headers = isStudentMode
+        ? ["Subject", "Topic", "Benar", "Salah", "Blank", "Total", "% Benar"]
+        : ["Nama", "Kelas", "Target", "Benar", "Salah", "Blank", "Total", "% Benar"];
+      $("drillRowsHead").innerHTML = `<tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr>`;
+      $("drillRows").innerHTML = rows.length ? rows.map((row) => isStudentMode ? `<tr>
+          <td class="name">${escapeHtml(row.subject || "-")}</td>
+          <td>${escapeHtml(row.topic || "-")}</td>
+          <td class="metric metric-correct">${numberFmt.format(row.correct)}</td>
+          <td class="metric metric-wrong">${numberFmt.format(row.wrong)}</td>
+          <td class="metric metric-blank">${numberFmt.format(row.blank)}</td>
+          <td class="metric metric-total">${numberFmt.format(row.total)}</td>
+          <td class="metric metric-percent">${row.total ? Math.round((row.correct / row.total) * 100) : 0}%</td>
+        </tr>` : `<tr>
+          <td class="name">${escapeHtml(row.student)}</td>
+          <td>${escapeHtml(row.class)}</td>
+          <td class="metric metric-target">${numberFmt.format(row.target)}</td>
+          <td class="metric metric-correct">${numberFmt.format(row.correct)}</td>
+          <td class="metric metric-wrong">${numberFmt.format(row.wrong)}</td>
+          <td class="metric metric-blank">${numberFmt.format(row.blank)}</td>
+          <td class="metric metric-total">${numberFmt.format(row.total)}</td>
+          <td class="metric metric-percent">${row.target ? Math.round((row.correct / row.target) * 100) : 0}%</td>
+        </tr>`).join("") : `<tr><td colspan="${headers.length}" class="empty">Tidak ada detail subject dan topic pada tanggal ini.</td></tr>`;
+    }
+
+    function renderDrillDateRow(date, rows) {
+      const dateRows = rows.filter((row) => row.date === date);
+      const selectedStudent = drillMode === "student" ? $("drillStudentInput").value.trim().toLowerCase() : "";
+      const selectedStudentRecord = findSelectedDrillStudent(selectedStudent);
+      const selectedClass = drillMode === "student" ? (selectedStudentRecord?.class || "") : $("drillClassSelect").value;
+      const displayRows = drillDisplayRows(dateRows, selectedClass, date, selectedStudent, [date]);
+      const target = displayRows.reduce((sum, row) => sum + row.target, 0);
+      const correct = displayRows.reduce((sum, row) => sum + row.correct, 0);
+      const wrong = displayRows.reduce((sum, row) => sum + row.wrong, 0);
+      const blank = displayRows.reduce((sum, row) => sum + row.blank, 0);
+      const total = displayRows.reduce((sum, row) => sum + row.total, 0);
+      const percent = target ? Math.round((correct / target) * 100) : 0;
+      return `<button class="date-row ${date === selectedDrillDate ? "active" : ""}" onclick="selectDrillDate('${date}')">
+        <span class="date-cell">${safeFormatLongDate(date)}</span>
+        <span class="date-cell target">Target Soal <strong>${numberFmt.format(target)}</strong></span>
+        <span class="date-cell correct">Benar <strong>${numberFmt.format(correct)}</strong></span>
+        <span class="date-cell wrong">Salah <strong>${numberFmt.format(wrong)}</strong></span>
+        <span class="date-cell blank">Blank <strong>${numberFmt.format(blank)}</strong></span>
+        <span class="date-cell total">Total <strong>${numberFmt.format(total)}</strong></span>
+        <span class="date-cell percent">% Benar <strong>${percent}%</strong></span>
+      </button>`;
+    }
+
+    function renderStudentSubjectDetail(date, rows) {
+      if (drillMode !== "student" || date !== selectedDrillDate) return "";
+      const selectedRows = rows.filter((row) => row.date === date);
+      if (!selectedRows.length) return "";
+      const subjectRows = summarizeSubjectTopicRows(selectedRows);
+      return `<div class="student-subject-detail">
+        <table>
+          <thead><tr><th>Subject</th><th>Topic</th><th>Benar</th><th>Salah</th><th>Blank</th><th>Total</th><th>% Benar</th></tr></thead>
+          <tbody>
+            ${subjectRows.map((row) => `<tr>
+              <td>${escapeHtml(row.subject || "-")}</td>
+              <td>${escapeHtml(row.topic || "-")}</td>
+              <td class="metric metric-correct">${numberFmt.format(row.correct)}</td>
+              <td class="metric metric-wrong">${numberFmt.format(row.wrong)}</td>
+              <td class="metric metric-blank">${numberFmt.format(row.blank)}</td>
+              <td class="metric metric-total">${numberFmt.format(row.total)}</td>
+              <td class="metric metric-percent">${row.total ? Math.round((row.correct / row.total) * 100) : 0}%</td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`;
+    }
+
+    function renderDrillLeaderboard(rows, dates) {
+      $("drillLeaderboardPanel").hidden = false;
+      const dateSet = new Set(dates);
+      const filteredRows = rows.filter((row) => !dateSet.size || dateSet.has(row.date));
+      if (drillMode === "class") {
+        renderClassLeaderboard(filteredRows, dates);
+        return;
+      }
+      const grouped = new Map();
+      filteredRows.forEach((row) => {
+        const student = findSelectedDrillStudent(row.student.toLowerCase()) || { name: row.student, class: row.class };
+        const grade = gradeFromClass(student.class || row.class);
+        if (!grade) return;
+        const key = `${grade}|${student.name.toLowerCase()}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, { grade, student: student.name, class: student.class || row.class, correct: 0, target: 0, total: 0 });
+        }
+        const item = grouped.get(key);
+        item.correct += row.correct;
+        item.total += row.total;
+      });
+      grouped.forEach((item) => {
+        const shownDates = Math.max(dates.length, 1);
+        item.target = drillTarget(item.class) * shownDates;
+        item.percent = item.target ? Math.round((item.correct / item.target) * 100) : 0;
+      });
+      const grades = ["6 SD", "7 SMP", "8 SMP", "9 SMP", "10 SMA", "11 SMA", "12 SMA"];
+      $("drillLeaderboardGrid").innerHTML = grades.map((grade) => {
+        const leaders = [...grouped.values()]
+          .filter((item) => item.grade === grade && item.percent > 0)
+          .sort((a, b) => b.percent - a.percent || b.correct - a.correct || a.student.localeCompare(b.student, "id"))
+          .slice(0, 3);
+        return `<div class="leaderboard-card">
+          <div class="leaderboard-grade">${grade}</div>
+          ${leaders.length ? leaders.map((item, index) => `<div class="leaderboard-item">
+            <span class="leaderboard-rank">${index + 1}</span>
+            <div class="leaderboard-score score-${index + 1}">${item.percent}%</div>
+            <div><div class="leaderboard-name">${escapeHtml(item.student)}</div><div class="leaderboard-meta">${numberFmt.format(item.correct)} benar dari target ${numberFmt.format(item.target)}</div></div>
+          </div>`).join("") : `<div class="empty">Belum ada data.</div>`}
+        </div>`;
+      }).join("");
+    }
+
+    function renderClassLeaderboard(rows, dates) {
+      const grouped = new Map();
+      rows.forEach((row) => {
+        const key = row.class;
+        if (!key) return;
+        if (!grouped.has(key)) {
+          grouped.set(key, { class: key, correct: 0, target: 0, total: 0, students: new Set() });
+        }
+        const item = grouped.get(key);
+        item.correct += row.correct;
+        item.total += row.total;
+        item.students.add(row.student.toLowerCase());
+      });
+      grouped.forEach((item) => {
+        const shownDates = Math.max(dates.length, 1);
+        const activeCount = activeStudentsByClass(item.class).length || item.students.size;
+        item.target = activeCount * drillTarget(item.class) * shownDates;
+        item.percent = item.target ? Math.round((item.correct / item.target) * 100) : 0;
+      });
+      const leaders = [...grouped.values()]
+        .filter((item) => item.percent > 0)
+        .sort((a, b) => b.percent - a.percent || b.correct - a.correct || a.class.localeCompare(b.class, "id"))
+        .slice(0, 3);
+      $("drillLeaderboardGrid").innerHTML = `<div class="leaderboard-card">
+        <div class="leaderboard-grade">Top 3 Kelas</div>
+        ${leaders.length ? leaders.map((item, index) => `<div class="leaderboard-item">
+          <span class="leaderboard-rank">${index + 1}</span>
+          <div class="leaderboard-score score-${index + 1}">${item.percent}%</div>
+          <div><div class="leaderboard-name">${escapeHtml(item.class)}</div><div class="leaderboard-meta">${numberFmt.format(item.correct)} benar dari target ${numberFmt.format(item.target)}</div></div>
+        </div>`).join("") : `<div class="empty">Belum ada data.</div>`}
+      </div>`;
+    }
+
+    function gradeFromClass(kelas) {
+      const text = String(kelas || "").toUpperCase();
+      const match = text.match(/\b(6|7|8|9|10|11|12)\b/);
+      if (!match) return "";
+      const grade = Number(match[1]);
+      if (grade === 6) return "6 SD";
+      if (grade >= 7 && grade <= 9) return `${grade} SMP`;
+      if (grade >= 10 && grade <= 12) return `${grade} SMA`;
+      return "";
+    }
+
+    function summarizeSubjectTopicRows(rows) {
+      const grouped = new Map();
+      rows.forEach((row) => {
+        const subject = row.subject || "-";
+        const topic = row.topic || "-";
+        const key = `${subject.toLowerCase()}|${topic.toLowerCase()}`;
+        if (!grouped.has(key)) {
+          grouped.set(key, { subject, topic, target: drillTarget(row.class), correct: 0, wrong: 0, blank: 0, total: 0 });
+        }
+        const item = grouped.get(key);
+        item.correct += row.correct;
+        item.wrong += row.wrong;
+        item.blank += row.blank;
+        item.total += row.total;
+      });
+      return [...grouped.values()].sort((a, b) => a.subject.localeCompare(b.subject, "id") || a.topic.localeCompare(b.topic, "id"));
+    }
+
+    function drillVisibleDates(month, week, rows) {
+      if (week) return drillWeekRange(month, week);
+      if (month) {
+        const periods = data.weeks
+          .filter((item) => item.month === month)
+          .sort(comparePeriod);
+        const dates = periods.flatMap((period) => drillWeekRange(period.month, period.week));
+        return [...new Set(dates)].sort();
+      }
+      return [...new Set(rows.map((row) => row.date))].sort();
+    }
+
+    function drillWeekRange(month, week) {
+      if (!week) return [];
+      const period = data.weeks.find((item) => (!month || item.month === month) && item.week === week);
+      if (!period?.start) return [];
+      const start = new Date(`${period.start}T00:00:00`);
+      if (Number.isNaN(start.getTime())) return [];
+      return Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(start);
+        date.setDate(start.getDate() + index);
+        return isoLocalDate(date);
+      });
+    }
+
+    function buildEmptyDrillRows(kelas, date) {
+      if (!kelas) return [];
+      return activeStudentsByClass(kelas).map((student) => ({
+        student: student.name,
+        class: student.class,
+        date,
+        correct: 0,
+        wrong: 0,
+        blank: 0,
+        total: 0,
+        target: drillTarget(student.class)
+      }));
+    }
+
+    function drillDisplayRows(rows, kelas, date, selectedStudent = "", dates = [date]) {
+      const targetMultiplier = Math.max(dates.length, 1);
+      const summarizedRows = summarizeDrillRowsByStudent(rows, targetMultiplier);
+      if (selectedStudent) {
+        if (summarizedRows.length) return summarizedRows;
+        const student = findSelectedDrillStudent(selectedStudent);
+        return student ? [{
+          student: student.name,
+          class: student.class,
+          date,
+          target: drillTarget(student.class) * targetMultiplier,
+          correct: 0,
+          wrong: 0,
+          blank: 0,
+          total: 0
+        }] : [];
+      }
+      if (!kelas) return summarizedRows;
+      const byStudent = new Map(summarizedRows.map((row) => [row.student.toLowerCase(), row]));
+      activeStudentsByClass(kelas).forEach((student) => {
+        const key = student.name.toLowerCase();
+        if (!byStudent.has(key)) {
+          byStudent.set(key, {
+            student: student.name,
+            class: student.class,
+            date,
+            target: drillTarget(student.class) * targetMultiplier,
+            correct: 0,
+            wrong: 0,
+            blank: 0,
+            total: 0
+          });
+        }
+      });
+      return [...byStudent.values()].sort((a, b) => a.student.localeCompare(b.student, "id"));
+    }
+
+    function findSelectedDrillStudent(selectedStudent) {
+      if (!selectedStudent) return null;
+      const exactDrill = drillData.find((row) => row.student.toLowerCase() === selectedStudent);
+      if (exactDrill) return { name: exactDrill.student, class: exactDrill.class };
+      const exactStudent = data.students.find((student) => student.name.toLowerCase() === selectedStudent);
+      if (exactStudent) return exactStudent;
+      const partialDrill = drillData.find((row) => row.student.toLowerCase().includes(selectedStudent));
+      if (partialDrill) return { name: partialDrill.student, class: partialDrill.class };
+      return data.students.find((student) => student.name.toLowerCase().includes(selectedStudent)) || null;
+    }
+
+    function activeStudentsByClass(kelas) {
+      return data.students.filter((student) => student.class === kelas && isActiveStudent(student));
+    }
+
+    function isActiveStudent(student) {
+      const status = String(student?.status || "").trim().toLowerCase();
+      return !status || ["active", "aktif"].includes(status);
+    }
+
+    function summarizeDrillRowsByStudent(rows, targetMultiplier = 1) {
+      const grouped = new Map();
+      rows.forEach((row) => {
+        const key = row.student.toLowerCase();
+        if (!grouped.has(key)) {
+          grouped.set(key, { student: row.student, class: row.class, target: drillTarget(row.class) * targetMultiplier, correct: 0, wrong: 0, blank: 0, total: 0 });
+        }
+        const item = grouped.get(key);
+        item.correct += row.correct;
+        item.wrong += row.wrong;
+        item.blank += row.blank;
+        item.total += row.total;
+      });
+      return [...grouped.values()].sort((a, b) => a.student.localeCompare(b.student, "id"));
+    }
+
+    function valueAt(row, index) {
+      return index >= 0 ? String(row[index] || "").trim() : "";
+    }
+
+    function fallbackIndex(index, fallback) {
+      return index >= 0 ? index : fallback;
+    }
+
+    function classFromStudent(studentName) {
+      const student = data.students.find((item) => item.name.toLowerCase() === String(studentName || "").trim().toLowerCase());
+      return student?.class || "";
+    }
+
+    function normalizeDrillClass(value) {
+      return String(value || "").split(",").map((item) => item.trim()).filter(Boolean)[0] || "";
+    }
+
+    function drillTarget(kelas) {
+      return String(kelas || "").includes("12") ? 10 : 5;
+    }
+
+    function normalizeDrillDate(value) {
+      const text = String(value || "").trim();
+      if (!text) return "Tanpa tanggal";
+      const native = new Date(text);
+      if (!Number.isNaN(native.getTime())) return native.toISOString().slice(0, 10);
+      const monthMap = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", Mei: "05", Jun: "06", Jul: "07", Agu: "08", Sep: "09", Okt: "10", Nov: "11", Des: "12" };
+      const match = text.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
+      if (match) return `${match[3]}-${monthMap[match[2]] || "01"}-${String(Number(match[1])).padStart(2, "0")}`;
+      return text;
+    }
+
+    function monthNameFromDate(value) {
+      if (!String(value || "").match(/^\d{4}-\d{2}-\d{2}$/)) return "";
+      return new Intl.DateTimeFormat("id-ID", { month: "long" }).format(new Date(`${value}T00:00:00`));
+    }
+
+    function weekFromDate(value) {
+      if (!String(value || "").match(/^\d{4}-\d{2}-\d{2}$/)) return "";
+      const date = new Date(`${value}T00:00:00`);
+      return `Week ${Math.ceil(date.getDate() / 7)}`;
+    }
+
+    function resetFilters() {
+      $("searchInput").value = "";
+      $("classSelect").value = "";
+      $("monthSelect").value = "";
+      $("weekSelect").value = "";
+      $("statusSelect").value = "";
+      $("periodSelect").value = "";
+      $("tableSearch").value = "";
+      $("sortSelect").value = "monthWeek:asc";
+      render();
+    }
+
+    async function refreshData() {
+      const button = $("refreshBtn");
+      const previous = button.textContent;
+      button.disabled = true;
+      button.textContent = "Memuat...";
+      try {
+        const refreshedData = normalizeData(buildAttendanceData(await loadSheetRows("0")));
+        validateRefreshedAttendanceData(refreshedData);
+        data = refreshedData;
+        rebuildIndexes();
+        fillOptions();
+        resetFilters();
+        $("dataSubtitle").textContent += ` | diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+      } catch (error) {
+        alert(`Refresh gagal: ${error.message || "data dari spreadsheet tidak lengkap"}. Data dashboard sebelumnya tetap dipakai.`);
+      } finally {
+        button.disabled = false;
+        button.textContent = previous;
+      }
+    }
+
+    function validateRefreshedAttendanceData(refreshedData) {
+      const refreshedMonths = new Set((refreshedData.weeks || []).map((week) => week.month).filter(Boolean));
+      const currentMonths = new Set((data.weeks || []).map((week) => week.month).filter(Boolean));
+      const minimumWeeks = Math.max(10, Math.floor((data.weeks || []).length * 0.7));
+      if ((refreshedData.weeks || []).length < minimumWeeks) {
+        throw new Error(`${numberFmt.format((refreshedData.weeks || []).length)} periode terbaca, seharusnya sekitar ${numberFmt.format((data.weeks || []).length)}`);
+      }
+      if (refreshedMonths.size < Math.min(4, currentMonths.size)) {
+        throw new Error(`bulan yang terbaca hanya ${[...refreshedMonths].join(", ") || "kosong"}`);
+      }
+    }
+
+    async function loadSheetRows(gid) {
+      if (!USE_NETLIFY_PROXY) return loadSheetRowsFallback(gid);
+      try {
+        const response = await fetch(`${SHEET_PROXY_URL}?gid=${encodeURIComponent(gid)}&cachebust=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return parseCsv(await response.text());
+      } catch (error) {
+        return loadSheetRowsFallback(gid);
+      }
+    }
+
+    function loadSheetRowsFallback(gid) {
+      return new Promise((resolve, reject) => {
+        const callbackName = `sheetFallback_${gid}_${Date.now()}`.replace(/\D/g, "_");
+        const script = document.createElement("script");
+        const timeout = window.setTimeout(() => {
+          cleanup();
+          reject(new Error("Fallback timeout"));
+        }, 20000);
+        function cleanup() {
+          window.clearTimeout(timeout);
+          script.remove();
+          delete window[callbackName];
+        }
+        window[callbackName] = (payload) => {
+          cleanup();
+          if (!payload || payload.status !== "ok") reject(new Error(payload?.status || "Invalid fallback response"));
+          else resolve(gvizToRows(payload));
+        };
+        script.onerror = () => {
+          cleanup();
+          reject(new Error("Fallback script failed"));
+        };
+        script.src = `https://docs.google.com/spreadsheets/d/18PBKyGq0ZZx8WQclEFmrSDsWZjCj3QyxF-uSKSemz-I/gviz/tq?tqx=out:json;responseHandler:${callbackName}&gid=${encodeURIComponent(gid)}&cachebust=${Date.now()}`;
+        document.body.appendChild(script);
+      });
+    }
+
+    function gvizToRows(payload) {
+      const rows = payload.table?.rows || [];
+      const columnCount = payload.table?.cols?.length || 0;
+      return rows.map((row) => {
+        const cells = row.c || [];
+        return Array.from({ length: columnCount }, (_, index) => {
+          const cell = cells[index];
+          if (!cell) return "";
+          return cell.f ?? cell.v ?? "";
+        });
+      });
+    }
+
+    function downloadCsv() {
+      const rows = filteredWeekRows(currentFilters());
+      const header = ["Nama", "Kelas", "Bulan", "Week", "Sesi Ideal", "Hadir", "Izin", "Sakit", "Alpa", "Persen Hadir"];
+      const body = rows.map((row) => [row.student, row.class, row.month, row.week, row.idealSessions || 0, row.present, row.permit, row.sick, row.absent, `${Math.round(row.attendanceRate * 100)}%`]);
+      const csv = [header, ...body].map((line) => line.map(csvCell).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "rekap-presensi-bulan-week.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadStudentPdf() {
+      const filters = currentFilters();
+      const student = data.students.find((item) => item.name.toLowerCase() === filters.search);
+      if (!student) {
+        alert("Pilih satu nama siswa dari filter Cari siswa terlebih dahulu.");
+        return;
+      }
+
+      const rows = filteredWeekRows(filters);
+      const absenceRecords = filteredRecords(filters)
+        .filter((record) => record.studentId === student.id && ["Alpa", "Izin", "Sakit"].includes(record.status))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      const title = `Rekap Kehadiran ${student.name}`;
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Pop-up diblokir browser. Izinkan pop-up untuk mengunduh PDF.");
+        return;
+      }
+
+      printWindow.document.write(`
+        <!doctype html>
+        <html lang="id">
+        <head>
+          <meta charset="utf-8">
+          <title>${escapeHtml(title)}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            * { box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; color: #13202f; margin: 0; font-size: 11px; }
+            .header { border-bottom: 3px solid #00809d; padding-bottom: 10px; margin-bottom: 14px; }
+            .pdf-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+            .pdf-logo { width: 112px; height: auto; }
+            h1 { margin: 0; font-size: 18px; line-height: 1.25; color: #007fc7; }
+            .student { margin-top: 3px; font-size: 13px; font-weight: 700; }
+            .meta { margin-top: 5px; color: #52657a; font-size: 11px; }
+            .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0 14px; }
+            .box { border: 1px solid #cfe0ec; border-radius: 7px; padding: 6px; background: #f6fbff; }
+            .box-label { color: #52657a; font-size: 11px; font-weight: 700; }
+            .box-value { margin-top: 3px; font-size: 14px; font-weight: 800; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 12px; }
+            th, td { border: 1px solid #cfe0ec; padding: 4px 5px; text-align: center; }
+            th { background: #e9f8ff; color: #52657a; font-weight: 800; }
+            td:first-child, td:nth-child(2), th:first-child, th:nth-child(2) { text-align: left; }
+            .section { margin: 12px 0 7px; font-size: 12px; font-weight: 800; color: #007fc7; }
+            .absence { display: grid; grid-template-columns: 1fr 60px; gap: 8px; align-items: center; border: 1px solid #cfe0ec; padding: 6px 8px; margin-bottom: 5px; border-radius: 6px; background: #fbfdff; }
+            .badge { color: #fff; border-radius: 999px; padding: 3px 7px; text-align: center; font-weight: 700; font-size: 11px; }
+            .Alpa { background: #ef4444; }
+            .Izin { background: #F58220; }
+            .Sakit { background: #7c5ce7; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="pdf-top">
+              <div>
+                <h1>Rekap Kehadiran</h1>
+                <div class="student">${escapeHtml(student.name)}</div>
+                <div class="meta">Kelas: ${escapeHtml(student.class)} | Dicetak: ${new Date().toLocaleDateString("id-ID")}</div>
+              </div>
+              <img class="pdf-logo" src="ruangguru-logo.svg" alt="Ruangguru">
+            </div>
+          </div>
+          <div class="summary">
+            <div class="box"><div class="box-label">Sesi Ideal</div><div class="box-value">${numberFmt.format(rows.reduce((sum, row) => sum + (row.idealSessions || 0), 0))}</div></div>
+            <div class="box"><div class="box-label">Hadir</div><div class="box-value">${numberFmt.format(rows.reduce((sum, row) => sum + row.present, 0))}</div></div>
+            <div class="box"><div class="box-label">Izin</div><div class="box-value">${numberFmt.format(rows.reduce((sum, row) => sum + row.permit, 0))}</div></div>
+            <div class="box"><div class="box-label">Sakit</div><div class="box-value">${numberFmt.format(rows.reduce((sum, row) => sum + row.sick, 0))}</div></div>
+            <div class="box"><div class="box-label">Alpa</div><div class="box-value">${numberFmt.format(rows.reduce((sum, row) => sum + row.absent, 0))}</div></div>
+          </div>
+          <table>
+            <thead><tr><th>Bulan</th><th>Week</th><th>Sesi Ideal</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>% Hadir</th></tr></thead>
+            <tbody>
+              ${rows.map((row) => `<tr><td>${escapeHtml(row.month)}</td><td>${escapeHtml(row.week)}</td><td>${numberFmt.format(row.idealSessions || 0)}</td><td>${numberFmt.format(row.present)}</td><td>${numberFmt.format(row.permit)}</td><td>${numberFmt.format(row.sick)}</td><td>${numberFmt.format(row.absent)}</td><td>${Math.round(row.attendanceRate * 100)}%</td></tr>`).join("")}
+            </tbody>
+          </table>
+          <div class="section">Tanggal Tidak Hadir</div>
+          ${absenceRecords.length ? absenceRecords.map((record) => `<div class="absence"><div><strong>${formatLongDate(record.date)}</strong></div><div class="badge ${record.status}">${record.status}</div></div>`).join("") : "<div>Tidak ada tanggal tidak hadir pada filter ini.</div>"}
+          <script>window.onload = () => { window.print(); };<\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    function downloadDrillPdf() {
+      const selectedStudent = drillMode === "student" ? $("drillStudentInput").value.trim().toLowerCase() : "";
+      const selectedStudentRecord = findSelectedDrillStudent(selectedStudent);
+      const selectedClass = drillMode === "student" ? (selectedStudentRecord?.class || "") : $("drillClassSelect").value;
+      const selectedMonth = $("drillMonthSelect").value;
+      const selectedWeek = $("drillWeekSelect").value;
+      const date = selectedDrillDate;
+      if (!date) {
+        alert("Pilih tanggal drill terlebih dahulu.");
+        return;
+      }
+
+      const activeDates = currentDrillDates.length ? currentDrillDates : [date];
+      const rows = drillData.filter((row) => {
+        if (selectedStudent && !row.student.toLowerCase().includes(selectedStudent)) return false;
+        if (drillMode === "class" && selectedClass && row.class !== selectedClass) return false;
+        if (selectedMonth && row.month !== selectedMonth) return false;
+        if (selectedWeek && row.week !== selectedWeek) return false;
+        if (!activeDates.includes(row.date)) return false;
+        return true;
+      });
+      const displayRows = drillDisplayRows(rows, selectedClass, activeDates[0] || date, selectedStudent);
+      if (!displayRows.length) {
+        alert("Tidak ada data siswa untuk filter drill saat ini.");
+        return;
+      }
+
+      const totals = {
+        target: displayRows.reduce((sum, row) => sum + row.target, 0),
+        correct: displayRows.reduce((sum, row) => sum + row.correct, 0),
+        wrong: displayRows.reduce((sum, row) => sum + row.wrong, 0),
+        blank: displayRows.reduce((sum, row) => sum + row.blank, 0),
+        total: displayRows.reduce((sum, row) => sum + row.total, 0)
+      };
+      const title = selectedStudentRecord ? `Rekap Drill ${selectedStudentRecord.name}` : selectedClass ? `Rekap Drill ${selectedClass}` : "Rekap Drill Semua Siswa";
+      const subtitle = `${selectedMonth || "Semua month"}${selectedWeek ? ` - ${selectedWeek}` : " - Semua week"} | ${activeDates.length > 1 ? `${numberFmt.format(activeDates.length)} tanggal` : safeFormatLongDate(date)}`;
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Pop-up diblokir browser. Izinkan pop-up untuk mengunduh PDF.");
+        return;
+      }
+
+      printWindow.document.write(`
+        <!doctype html>
+        <html lang="id">
+        <head>
+          <meta charset="utf-8">
+          <title>${escapeHtml(title)}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            * { box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; color: #13202f; margin: 0; font-size: 10.5px; }
+            .header { border-bottom: 3px solid #00809d; padding-bottom: 10px; margin-bottom: 12px; }
+            .pdf-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+            .pdf-logo { width: 116px; height: auto; }
+            h1 { margin: 0; font-size: 18px; line-height: 1.25; color: #007fc7; }
+            .meta { margin-top: 5px; color: #52657a; font-size: 11px; }
+            .summary { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin: 12px 0 14px; }
+            .box { border: 1px solid #cfe0ec; border-radius: 7px; padding: 6px; background: #f6fbff; }
+            .box-label { color: #52657a; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+            .box-value { margin-top: 3px; font-size: 14px; font-weight: 800; }
+            .correct { color: #10B981; }
+            .wrong { color: #ef4444; }
+            .blank { color: #7c5ce7; }
+            .percent { color: #F58220; }
+            table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+            th, td { border: 1px solid #cfe0ec; padding: 5px 6px; text-align: center; }
+            th { background: #e9f8ff; color: #52657a; font-weight: 800; }
+            td:first-child, td:nth-child(2), th:first-child, th:nth-child(2) { text-align: left; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="pdf-top">
+              <div>
+                <h1>${escapeHtml(title)}</h1>
+                <div class="meta">${escapeHtml(subtitle)} | Dicetak: ${new Date().toLocaleDateString("id-ID")}</div>
+              </div>
+              <img class="pdf-logo" src="ruangguru-logo.svg" alt="Ruangguru">
+            </div>
+          </div>
+          <div class="summary">
+            <div class="box"><div class="box-label">Target</div><div class="box-value">${numberFmt.format(totals.target)}</div></div>
+            <div class="box"><div class="box-label">Benar</div><div class="box-value correct">${numberFmt.format(totals.correct)}</div></div>
+            <div class="box"><div class="box-label">Salah</div><div class="box-value wrong">${numberFmt.format(totals.wrong)}</div></div>
+            <div class="box"><div class="box-label">Blank</div><div class="box-value blank">${numberFmt.format(totals.blank)}</div></div>
+            <div class="box"><div class="box-label">Total</div><div class="box-value">${numberFmt.format(totals.total)}</div></div>
+            <div class="box"><div class="box-label">% Benar</div><div class="box-value percent">${totals.target ? Math.round((totals.correct / totals.target) * 100) : 0}%</div></div>
+          </div>
+          <table>
+            <thead><tr><th>Nama</th><th>Kelas</th><th>Target</th><th>Benar</th><th>Salah</th><th>Blank</th><th>Total</th><th>% Benar</th></tr></thead>
+            <tbody>
+              ${displayRows.map((row) => `<tr><td>${escapeHtml(row.student)}</td><td>${escapeHtml(row.class)}</td><td>${numberFmt.format(row.target)}</td><td class="correct">${numberFmt.format(row.correct)}</td><td class="wrong">${numberFmt.format(row.wrong)}</td><td class="blank">${numberFmt.format(row.blank)}</td><td>${numberFmt.format(row.total)}</td><td class="percent">${row.target ? Math.round((row.correct / row.target) * 100) : 0}%</td></tr>`).join("")}
+            </tbody>
+          </table>
+          <script>window.onload = () => { window.print(); };<\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
+    function normalizeData(source) {
+      const validKeys = new Set((source.weeks || []).filter((week) => week.month && week.week).map((week) => week.key));
+      return {
+        ...source,
+        weeks: (source.weeks || []).filter((week) => validKeys.has(week.key)).sort(comparePeriod),
+        studentWeeks: (source.studentWeeks || []).filter((week) => validKeys.has(week.weekKey)),
+        records: (source.records || []).filter((record) => validKeys.has(record.weekKey))
+      };
+    }
+
+    function buildAttendanceData(rows) {
+      const header = rows[0] || [];
+      const dayrow = rows[1] || [];
+      const monthMap = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", Mei: "05", Jun: "06", Jul: "07", Agu: "08", Sep: "09", Okt: "10", Nov: "11", Des: "12" };
+      const blocks = [];
+      header.forEach((cell, index) => {
+        if (String(cell).trim() !== "Month" || String(header[index + 2] || "").trim() !== "Jumlah Sesi Ideal") return;
+        const dateColumns = [];
+        for (let column = index + 3; column < Math.min(index + 9, header.length); column += 1) {
+          const match = String(header[column] || "").trim().match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
+          if (!match) continue;
+          dateColumns.push({ index: column, label: header[column].trim(), iso: `${match[3]}-${monthMap[match[2]]}-${String(Number(match[1])).padStart(2, "0")}`, day: String(dayrow[column] || "").trim() });
+        }
+        if (!dateColumns.length) return;
+        const votes = new Map();
+        rows.slice(2).forEach((row) => {
+          const month = String(row[index] || "").trim();
+          const week = String(row[index + 1] || "").trim();
+          if (!month || !week) return;
+          const key = `${month}|${week}`;
+          votes.set(key, (votes.get(key) || 0) + 1);
+        });
+        const best = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
+        if (!best) return;
+        const [month, week] = best[0].split("|");
+        blocks.push({ monthIndex: index, weekIndex: index + 1, idealIndex: index + 2, month, week, order: blocks.length, dateColumns });
+      });
+
+      const students = [];
+      const records = [];
+      const studentWeeks = [];
+      const weekMap = new Map();
+      rows.slice(2).forEach((row, rowIndex) => {
+        if (!String(row[0] || "").trim()) return;
+        const studentId = rowIndex + 1;
+        const student = {
+          id: studentId,
+          name: String(row[0] || "").trim(),
+          email: String(row[1] || "").trim(),
+          class: String(row[2] || "").trim(),
+          paidDate: String(row[3] || "").trim(),
+          studyDays: String(row[4] || "").trim(),
+          status: normalizeStudentStatus(row)
+        };
+        students.push(student);
+        blocks.forEach((block) => {
+          const month = block.month;
+          const week = block.week;
+          const idealSessions = toNumber(row[block.idealIndex]);
+          const weekKey = `${month}|${week}|${block.dateColumns[0].iso}`;
+          weekMap.set(weekKey, { key: weekKey, month, week, start: block.dateColumns[0].iso, end: block.dateColumns.at(-1).iso, label: `${month} - ${week}`, order: block.order, weekOrder: weekNumber(week) });
+          studentWeeks.push({ studentId, student: student.name, class: student.class, month, week, weekKey, weekStart: block.dateColumns[0].iso, weekEnd: block.dateColumns.at(-1).iso, idealSessions, periodOrder: block.order });
+          block.dateColumns.forEach((column) => {
+            const raw = String(row[column.index] || "").trim();
+            const status = statusKind(raw);
+            if (!status) return;
+            records.push({ studentId, student: student.name, class: student.class, date: column.iso, dateLabel: column.label, day: column.day, raw, status, sessions: toNumber(raw), month, week, weekKey, weekStart: block.dateColumns[0].iso, weekEnd: block.dateColumns.at(-1).iso, idealSessions, periodOrder: block.order });
+          });
+        });
+      });
+      const weeks = [...weekMap.values()].sort(comparePeriod);
+      return { generatedFrom: "Google Sheets refresh", studentCount: students.length, weekCount: weeks.length, students, weeks, studentWeeks, records };
+    }
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let value = "";
+      let quoted = false;
+      for (let i = 0; i < text.length; i += 1) {
+        const char = text[i];
+        const next = text[i + 1];
+        if (char === '"' && quoted && next === '"') { value += '"'; i += 1; continue; }
+        if (char === '"') { quoted = !quoted; continue; }
+        if (char === "," && !quoted) { row.push(value); value = ""; continue; }
+        if ((char === "\n" || char === "\r") && !quoted) {
+          if (char === "\r" && next === "\n") i += 1;
+          row.push(value); rows.push(row); row = []; value = ""; continue;
+        }
+        value += char;
+      }
+      row.push(value);
+      if (row.length > 1 || row[0]) rows.push(row);
+      return rows;
+    }
+
+    function statusKind(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      if (text.toLowerCase() === "izin") return "Izin";
+      if (text.toLowerCase() === "sakit") return "Sakit";
+      const number = toNumber(text);
+      if (!Number.isNaN(number)) return number > 0 ? "Hadir" : "Alpa";
+      return text;
+    }
+
+    function normalizeStudentStatus(row) {
+      const statusCell = row.find((cell, index) => index > 4 && ["active", "aktif", "inactive", "non active", "nonaktif"].includes(String(cell || "").trim().toLowerCase()));
+      return String(statusCell || "active").trim();
+    }
+
+    function toNumber(value) {
+      const number = Number(String(value || "").trim().replace(",", "."));
+      return Number.isFinite(number) ? number : 0;
+    }
+
+    function periodText(filters) {
+      if (filters.period) {
+        const period = data.weeks.find((item) => item.key === filters.period);
+        return period ? period.label : "-";
+      }
+      if (filters.month && filters.week) return `${filters.month} - ${filters.week}`;
+      if (filters.month) return filters.month;
+      if (filters.week) return filters.week;
+      return "Semua bulan/week";
+    }
+
+    function monthOrder(month) {
+      return { July: 7, Juli: 7, Agustus: 8, September: 9, Oktober: 10, November: 11, Desember: 12 }[month] || 99;
+    }
+
+    function classOrder(kelas) {
+      const text = String(kelas || "").toUpperCase();
+      if (text.includes("SD")) return 1;
+      if (text.includes("SMP")) return 2;
+      if (text.includes("SMA")) return 3;
+      if (text.includes("KURMER")) return 4;
+      if (text.includes("SIAP SNBT")) return 5;
+      if (text.includes("KEDINASAN")) return 6;
+      return 99;
+    }
+
+    function compareClass(a, b) {
+      return classOrder(a) - classOrder(b) || String(a || "").localeCompare(String(b || ""), "id");
+    }
+
+    function comparePeriod(a, b) {
+      const aOrder = Number.isFinite(a.order) ? a.order : monthOrder(a.month) * 10 + weekNumber(a.week);
+      const bOrder = Number.isFinite(b.order) ? b.order : monthOrder(b.month) * 10 + weekNumber(b.week);
+      return aOrder - bOrder || String(a.start || "").localeCompare(String(b.start || ""));
+    }
+
+    function weekNumber(week) {
+      const match = String(week || "").match(/\d+/);
+      return match ? Number(match[0]) : 0;
+    }
+
+    function formatDate(value) {
+      return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${value}T00:00:00`));
+    }
+
+    function formatLongDate(value) {
+      return new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(new Date(`${value}T00:00:00`));
+    }
+
+    function isoLocalDate(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    }
+
+    function safeFormatLongDate(value) {
+      if (!String(value || "").match(/^\d{4}-\d{2}-\d{2}$/)) return String(value || "Tanpa tanggal");
+      return formatLongDate(value);
+    }
+
+    function csvCell(value) {
+      return `"${String(value ?? "").replaceAll('"', '""')}"`;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[char]));
+    }
+
+    init();
+  </script>
+</body>
+</html>
