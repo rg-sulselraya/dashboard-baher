@@ -47,7 +47,7 @@
     button.primary { color: #fff; background: var(--blue-dark); border-color: var(--blue-dark); }
     button.refresh { color: var(--green); border-color: rgba(16, 185, 129, 0.28); }
     button.danger { color: var(--red); border-color: rgba(239, 68, 68, 0.28); }
-    button.download-pdf { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: #fff; background: #F58220; border-color: #F58220; min-width: 126px; }
+    button.download-pdf { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: #fff; background: #F58220; border-color: #F58220; min-width: 126px; box-shadow: 0 10px 22px rgba(245, 130, 32, 0.22); }
     button:disabled { opacity: 0.62; cursor: progress; }
     main { padding: 22px 0 34px; }
     body.locked header, body.locked main { display: none; }
@@ -60,6 +60,7 @@
     .access-error { color: var(--red); font-size: 13px; min-height: 18px; }
 
     .filters { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
+    #attendanceView .filters { grid-template-columns: minmax(210px, 1.25fr) minmax(160px, 1fr) minmax(170px, 1fr) minmax(130px, 0.7fr) minmax(120px, 0.62fr) minmax(128px, 0.65fr) minmax(160px, 0.8fr); gap: 10px; }
     label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 800; }
     input, select { width: 100%; min-height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font: inherit; font-weight: 650; }
     select[multiple] { height: 92px; padding: 7px 10px; }
@@ -73,21 +74,34 @@
     .stat .hint { margin-top: 8px; color: var(--muted); font-size: 12px; }
 
     .grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; margin-bottom: 16px; }
-    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); min-width: 0; }
+    .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); min-width: 0; overflow: hidden; }
     .view[hidden] { display: none; }
     .placeholder { padding: 28px; color: var(--muted); }
     .placeholder h2 { color: var(--ink); font-size: 20px; margin-bottom: 8px; }
-    .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); gap: 12px; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--line); gap: 12px; background: #fbfdff; }
+    .panel-head h2 { font-size: 18px; font-weight: 950; color: #0f1f33; }
+    .panel-head .table-tools input, .panel-head .table-tools select, .chart-controls select { min-height: 44px; border-color: #cfe0ec; font-size: 15px; font-weight: 850; }
+    .panel-head .table-tools input { min-width: 230px; }
+    .panel-head .table-tools select, .chart-controls select { min-width: 210px; }
     .chartbox { height: 320px; padding: 16px; }
     .chart-controls { display: flex; gap: 8px; align-items: center; }
     .chart-controls select { height: 34px; min-height: 34px; min-width: 118px; }
     .table-wrap { overflow: auto; max-height: 560px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
     th:nth-child(n+5), td:nth-child(n+5) { text-align: center; }
-    th { position: sticky; top: 0; background: #f4fbff; color: var(--muted); z-index: 2; }
+    th { position: sticky; top: 0; background: #f0f8fc; color: var(--muted); z-index: 2; font-size: 13px; font-weight: 950; }
     td.name { min-width: 250px; white-space: normal; font-weight: 400; }
-    .pill { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 800; background: #e9f8ff; color: var(--blue-dark); }
+    .name-toggle { all: unset; cursor: pointer; color: inherit; font: inherit; }
+    .name-toggle:hover { color: var(--blue-dark); text-decoration: underline; }
+    .inline-absence-row td { padding: 0; background: #f8fbfd; }
+    .inline-absence-list { display: grid; gap: 8px; margin: 12px 16px 14px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .inline-panel-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .inline-student-table { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .inline-student-table table { font-size: 12px; }
+    .inline-student-table th, .inline-student-table td { padding: 9px 10px; }
+    .inline-student-table td.name { min-width: 220px; font-weight: 700; }
+    .pill { display: inline-flex; align-items: center; min-height: 28px; padding: 0 12px; border-radius: 999px; font-size: 13px; font-weight: 900; background: #e9f8ff; color: var(--blue-dark); }
     .absence-list { display: grid; gap: 10px; padding: 16px; }
     .absence-item { display: grid; grid-template-columns: 1fr 110px; gap: 12px; align-items: center; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; }
     .absence-date { font-weight: 400; font-size: 13px; }
@@ -123,8 +137,8 @@
     .date-cell.percent strong { color: #F58220; }
     .sub-tabs { display: flex; gap: 8px; padding: 16px 16px 0; background: var(--panel); border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; box-shadow: var(--shadow); }
     .sub-tab { background: #eef8fd; color: var(--blue-dark); border-color: #cfe5f4; min-width: 120px; }
-    .sub-tab.active { background: var(--blue-dark); color: #fff; border-color: var(--blue-dark); }
-    .drill-filters { border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: var(--shadow); }
+    .sub-tab.active { background: #F58220; color: #fff; border-color: #F58220; box-shadow: 0 8px 20px rgba(245, 130, 32, 0.24); }
+    .attendance-filters, .drill-filters { border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: var(--shadow); }
     #drillRowsWrap table { border-collapse: separate; border-spacing: 0; }
     #drillRowsWrap th { background: #f0f8fc; font-size: 13px; text-transform: uppercase; }
     #drillRowsWrap td { background: #fff; }
@@ -156,15 +170,23 @@
     .score-3 { color: #b7791f !important; background: #fff7ed; border-color: #d69e2e; }
     .leaderboard-meta { color: var(--muted); font-size: 11px; line-height: 1.2; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .leaderboard-score { display: inline-flex; align-items: center; justify-content: flex-start; justify-self: start; color: #10B981; font-weight: 900; font-size: 16px; line-height: 1; text-align: left; }
-    .class-leaderboard { width: 100%; min-height: 0; border: 0; background: transparent; display: grid; grid-template-rows: none; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; overflow: visible; }
+    .grade-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 14px 0; }
+    .grade-tab { min-width: 88px; padding: 9px 14px; color: var(--blue-dark); background: #eef8fd; border-color: #cfe5f4; font-size: 13px; font-weight: 900; }
+    .grade-tab.active { color: #fff; background: #F58220; border-color: #F58220; box-shadow: 0 6px 16px rgba(245, 130, 32, 0.2); }
+    .class-leaderboard { width: 100%; min-height: 0; border: 0; background: transparent; display: grid; grid-template-rows: none; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; overflow: visible; }
     .class-leaderboard .leaderboard-grade { display: none; }
-    .class-leaderboard .leaderboard-item { min-height: 132px; display: grid; grid-template-columns: 48px minmax(0, 1fr) 82px; gap: 14px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; }
+    .class-leaderboard .leaderboard-item { position: relative; min-height: 112px; display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 4px 16px; align-content: center; align-items: center; padding: 16px 20px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; overflow: hidden; }
     .class-leaderboard .leaderboard-item:last-child { border-right: 1px solid var(--line); }
-    .class-leaderboard .leaderboard-rank { display: none; }
-    .class-leaderboard .leaderboard-name { display: block; font-size: 18px; line-height: 1.18; white-space: normal; overflow: visible; -webkit-line-clamp: unset; }
-    .class-leaderboard .leaderboard-meta { margin-top: 8px; font-size: 13px; line-height: 1.25; white-space: normal; overflow: visible; text-overflow: clip; }
-    .class-leaderboard .leaderboard-score { justify-self: end; font-size: 24px; white-space: nowrap; }
-    .leaderboard-medal { font-size: 34px; line-height: 1; text-align: center; }
+    .class-leaderboard .leaderboard-item::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 5px; background: currentColor; }
+    .class-leaderboard .leaderboard-rank { display: inline-flex; align-items: center; justify-content: center; position: absolute; top: 12px; right: 12px; min-width: 32px; height: 26px; padding: 0 9px; border-radius: 999px; background: rgba(255,255,255,0.76); color: inherit; font-size: 13px; font-weight: 900; }
+    .class-leaderboard .leaderboard-info { grid-column: 2; grid-row: 1 / 3; align-self: center; min-width: 0; }
+    .class-leaderboard .leaderboard-name { display: block; padding-right: 44px; font-size: 19px; line-height: 1.16; white-space: normal; overflow: visible; -webkit-line-clamp: unset; }
+    .class-leaderboard .leaderboard-meta { margin-top: 4px; color: #475569; font-size: 13px; line-height: 1.2; white-space: normal; overflow: visible; text-overflow: clip; }
+    .class-leaderboard .leaderboard-score { justify-self: end; align-self: center; grid-column: 3; grid-row: 1 / 3; font-size: 34px; white-space: nowrap; }
+    .leaderboard-medal { grid-row: 1 / 3; width: 72px; height: 72px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; background: transparent; font-size: 58px; line-height: 1; text-align: center; }
+    .leaderboard-class-rank-1 { color: #d97706; border-color: #f59e0b !important; background: #fff8e6 !important; }
+    .leaderboard-class-rank-2 { color: #64748b; border-color: #94a3b8 !important; background: #f8fafc !important; }
+    .leaderboard-class-rank-3 { color: #b45309; border-color: #c08457 !important; background: #fff1e7 !important; }
     .class-leaderboard .empty { grid-column: 1 / -1; display: flex; align-items: center; padding: 16px; }
     .detail-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; padding: 16px; }
     .detail-item { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fbfdff; }
@@ -173,6 +195,7 @@
 
     @media (max-width: 1120px) {
       .filters { grid-template-columns: 1fr 1fr; }
+      #attendanceView .filters { grid-template-columns: 1fr 1fr; }
       .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .grid { grid-template-columns: 1fr; }
       .leaderboard-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -238,9 +261,14 @@
 
   <main class="wrap">
     <section class="view" id="attendanceView">
-    <section class="filters" aria-label="Filter dashboard">
-      <label>Cari siswa<input id="searchInput" type="search" list="studentSuggestions" placeholder="Nama siswa"><datalist id="studentSuggestions"></datalist></label>
-      <label>Kelas<select id="classSelect"></select></label>
+    <div class="sub-tabs" aria-label="Mode kehadiran siswa">
+      <button class="sub-tab active" data-attendance-mode="student">Siswa</button>
+      <button class="sub-tab" data-attendance-mode="class">Kelas</button>
+    </div>
+    <section class="filters attendance-filters" aria-label="Filter dashboard">
+      <label id="attendanceStudentFilter">Cari siswa<input id="searchInput" type="search" list="studentSuggestions" placeholder="Nama siswa"><datalist id="studentSuggestions"></datalist></label>
+      <label id="attendancePaidDateFilter">Tanggal daftar<input id="attendancePaidDateInput" type="text" placeholder="Otomatis" readonly></label>
+      <label id="attendanceClassFilter">Kelas<select id="classSelect"></select></label>
       <label>Bulan<select id="monthSelect"></select></label>
       <label>Week<select id="weekSelect"></select></label>
       <label>Status<select id="statusSelect"><option value="">Semua status</option><option value="Hadir">Hadir</option><option value="Izin">Izin</option><option value="Sakit">Sakit</option><option value="Alpa">Alpa</option></select></label>
@@ -288,7 +316,7 @@
 
     <section class="panel">
       <div class="panel-head">
-        <h2>Rekap Per Siswa, Bulan, Week</h2>
+        <h2 id="attendanceTableTitle">Rekap Per Siswa, Bulan, Week</h2>
         <div class="table-tools">
           <input id="tableSearch" type="search" placeholder="Cari di tabel">
           <select id="sortSelect">
@@ -304,7 +332,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead>
+          <thead id="studentRowsHead">
             <tr>
               <th>Nama</th>
               <th>Kelas</th>
@@ -342,6 +370,7 @@
           <h2>Leaderboard Persentase Tertinggi</h2>
           <span class="pill">Top 3 per grade</span>
         </div>
+        <div class="grade-tabs" id="drillGradeTabs" hidden></div>
         <div class="leaderboard-grid" id="drillLeaderboardGrid"></div>
       </div>
       <div class="panel" id="drillSummaryPanel" hidden>
@@ -408,7 +437,9 @@
     const SHEET_PROXY_URL = "/.netlify/functions/sheet";
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhfHMZOJZELgfkGcyFjL-GXjHYD9wseeo9PazOYqCr5i-knQLRtXo8lgGH0ywv8X3JSw/exec";
     const LIVE_DATA_STORAGE_KEY = "baherLiveAttendanceData";
+    const LIVE_DATA_SCHEMA_VERSION = 2;
     const LIVE_DRILL_STORAGE_KEY = "baherLiveDrillData";
+    const DASHBOARD_MIN_TODAY = "2026-08-09";
     const USE_NETLIFY_PROXY = location.hostname.includes("netlify");
     let appsScriptDataPromise = null;
     let data = normalizeData(window.ATTENDANCE_DATA || { students: [], weeks: [], studentWeeks: [], records: [] });
@@ -416,7 +447,11 @@
     let drillLoaded = Array.isArray(window.DRILL_DATA);
     let selectedDrillDate = "";
     let currentDrillDates = [];
+    let attendanceMode = "student";
+    let expandedAttendanceStudent = "";
+    let expandedAttendanceClass = "";
     let drillMode = "student";
+    let selectedDrillGrade = "12 SMA";
     let byId = new Map();
     let classes = [];
     let months = [];
@@ -436,6 +471,7 @@
       restoreLiveDrillData();
       rebuildIndexes();
       fillOptions();
+      setAttendanceMode(attendanceMode);
       inputIds.map($).forEach((input) => {
         input.addEventListener("input", handleFilterInput);
         input.addEventListener("change", handleFilterInput);
@@ -445,12 +481,33 @@
       $("downloadPdfBtn").addEventListener("click", downloadStudentPdf);
       $("downloadDrillPdfBtn").addEventListener("click", downloadDrillPdf);
       $("refreshBtn").addEventListener("click", refreshData);
+      document.querySelectorAll("[data-attendance-mode]").forEach((tab) => tab.addEventListener("click", () => setAttendanceMode(tab.dataset.attendanceMode)));
       ["drillStudentInput", "drillClassSelect", "drillMonthSelect", "drillWeekSelect"].forEach((id) => {
         $(id).addEventListener("input", renderDrill);
         $(id).addEventListener("change", renderDrill);
       });
+      $("drillGradeTabs").addEventListener("click", (event) => {
+        const tab = event.target.closest("[data-drill-grade]");
+        if (!tab) return;
+        selectedDrillGrade = tab.dataset.drillGrade;
+        renderDrill();
+      });
       document.querySelectorAll("[data-drill-mode]").forEach((tab) => tab.addEventListener("click", () => setDrillMode(tab.dataset.drillMode)));
       document.querySelectorAll(".nav-tab").forEach((tab) => tab.addEventListener("click", () => showView(tab.dataset.view)));
+      render();
+    }
+
+    function setAttendanceMode(mode) {
+      attendanceMode = mode === "class" ? "class" : "student";
+      document.querySelectorAll("[data-attendance-mode]").forEach((tab) => tab.classList.toggle("active", tab.dataset.attendanceMode === attendanceMode));
+      $("attendanceStudentFilter").hidden = attendanceMode !== "student";
+      $("attendancePaidDateFilter").hidden = attendanceMode !== "student";
+      $("attendanceClassFilter").hidden = attendanceMode !== "class";
+      if (attendanceMode === "student") $("classSelect").value = "";
+      if (attendanceMode === "class") {
+        $("searchInput").value = "";
+        $("attendancePaidDateInput").value = "";
+      }
       render();
     }
 
@@ -542,7 +599,27 @@
       if ((event.target.id === "monthSelect" || event.target.id === "weekSelect") && event.target.value) {
         $("periodSelect").value = "";
       }
+      updateAttendancePaidDate();
       render();
+    }
+
+    function updateAttendancePaidDate() {
+      const selectedStudent = $("searchInput").value.trim().toLowerCase();
+      const student = findAttendanceStudent(selectedStudent);
+      $("attendancePaidDateInput").value = formatPaidDate(student?.paidDate);
+    }
+
+    function findAttendanceStudent(selectedStudent) {
+      if (!selectedStudent) return null;
+      const students = [
+        ...(data.students || []),
+        ...((window.ATTENDANCE_DATA?.students) || [])
+      ];
+      return students.find((student) => student.paidDate && student.name.toLowerCase() === selectedStudent)
+        || students.find((student) => student.paidDate && student.name.toLowerCase().includes(selectedStudent))
+        || students.find((student) => student.name.toLowerCase() === selectedStudent)
+        || students.find((student) => student.name.toLowerCase().includes(selectedStudent))
+        || null;
     }
 
     function currentFilters() {
@@ -561,6 +638,8 @@
     function weekMatches(item, filters) {
       const student = byId.get(item.studentId);
       if (!student) return false;
+      const start = itemWeekStart(item);
+      if (start && start > DASHBOARD_MIN_TODAY) return false;
       if (filters.search && !`${student.name} ${student.email}`.toLowerCase().includes(filters.search)) return false;
       if (filters.kelas && student.class !== filters.kelas) return false;
       if (filters.period && item.weekKey !== filters.period) return false;
@@ -569,11 +648,19 @@
       return true;
     }
 
+    function itemWeekStart(item) {
+      if (item.weekStart) return item.weekStart;
+      const period = data.weeks.find((week) => week.key === item.weekKey);
+      if (period?.start) return period.start;
+      const keyStart = String(item.weekKey || "").split("|")[2];
+      return String(keyStart || "").match(/^\d{4}-\d{2}-\d{2}$/) ? keyStart : "";
+    }
+
     function filteredRecords(filters) {
       return data.records.filter((record) => weekMatches(record, filters) && (!filters.status || record.status === filters.status));
     }
 
-    function filteredWeekRows(filters) {
+    function filteredWeekRows(filters, applyMode = true) {
       const records = filteredRecords(filters);
       const grouped = new Map();
       data.studentWeeks.filter((item) => weekMatches(item, filters)).forEach((item) => {
@@ -592,7 +679,7 @@
       });
       let rows = [...grouped.values()].map((row) => ({
         ...row,
-        absent: Math.max(row.absent, (row.idealSessions || 0) - row.present - row.permit - row.sick),
+        absent: row.absent,
         attendanceRate: row.idealSessions ? row.present / row.idealSessions : (row.total ? row.present / row.total : 0),
         monthWeek: `${String(row.periodOrder ?? 999).padStart(3, "0")}-${row.student}`
       }));
@@ -605,11 +692,16 @@
           return row.total > 0;
         });
       }
+      if (applyMode && attendanceMode === "class") rows = filters.kelas ? summarizeAttendanceRowsByClassWeek(rows) : summarizeAttendanceRowsByClass(rows);
+      if (applyMode && attendanceMode === "student" && !filters.search) rows = summarizeAttendanceRowsByStudent(rows);
       if (filters.tableSearch) {
-        rows = rows.filter((row) => `${row.student} ${row.class} ${row.month} ${row.week}`.toLowerCase().includes(filters.tableSearch));
+        rows = rows.filter((row) => `${row.student} ${row.class} ${row.month || ""} ${row.week || ""}`.toLowerCase().includes(filters.tableSearch));
       }
       const [key, direction] = filters.sort.split(":");
       rows.sort((a, b) => {
+        if (a.aggregateClass && b.aggregateClass && key === "monthWeek") {
+          return compareClass(a.class, b.class);
+        }
         const av = key === "name" ? a.student : a[key];
         const bv = key === "name" ? b.student : b[key];
         const result = typeof av === "string" ? av.localeCompare(bv, "id") : av - bv;
@@ -618,8 +710,60 @@
       return rows;
     }
 
+    function summarizeAttendanceRowsByStudent(rows) {
+      const grouped = new Map();
+      rows.forEach((row) => {
+        const key = row.studentId || row.student.toLowerCase();
+        if (!grouped.has(key)) {
+          grouped.set(key, { aggregate: true, studentId: row.studentId, student: row.student, class: row.class, idealSessions: 0, present: 0, permit: 0, sick: 0, absent: 0 });
+        }
+        const item = grouped.get(key);
+        item.idealSessions += row.idealSessions || 0;
+        item.present += row.present || 0;
+        item.permit += row.permit || 0;
+        item.sick += row.sick || 0;
+        item.absent += row.absent || 0;
+      });
+      return [...grouped.values()].map((row) => ({
+        ...row,
+        attendanceRate: row.idealSessions ? row.present / row.idealSessions : 0,
+        monthWeek: row.student
+      }));
+    }
+
+    function summarizeAttendanceRowsByClass(rows) {
+      const grouped = new Map();
+      rows.forEach((row) => {
+        const key = row.class || "-";
+        if (!grouped.has(key)) {
+          grouped.set(key, { aggregateClass: true, class: key, idealSessions: 0, present: 0, permit: 0, sick: 0, absent: 0, students: new Set() });
+        }
+        const item = grouped.get(key);
+        item.students.add(row.studentId || row.student);
+        item.idealSessions += row.idealSessions || 0;
+        item.present += row.present || 0;
+        item.permit += row.permit || 0;
+        item.sick += row.sick || 0;
+        item.absent += row.absent || 0;
+      });
+      return [...grouped.values()].map((row) => ({
+        ...row,
+        studentCount: row.students.size,
+        attendanceRate: row.idealSessions ? row.present / row.idealSessions : 0,
+        monthWeek: row.class
+      })).filter((row) => row.class && row.class !== "-").sort((a, b) => compareClass(a.class, b.class));
+    }
+
+    function summarizeAttendanceRowsByClassWeek(rows) {
+      return summarizeByClass(rows)
+        .filter((row) => row.class && row.class !== "-")
+        .map((row) => ({ ...row, aggregateClassWeek: true }))
+        .sort((a, b) => (a.periodOrder ?? 999) - (b.periodOrder ?? 999) || compareClass(a.class, b.class));
+    }
+
     function render() {
       const filters = currentFilters();
+      $("attendanceTableTitle").textContent = attendanceMode === "class" ? "Rekap per Kelas" : "Rekap Per Siswa, Bulan, Week";
       const records = filteredRecords(filters);
       const rows = filteredWeekRows(filters);
       const totals = countStatusesFromRows(rows);
@@ -661,10 +805,93 @@
 
     function renderTable(rows) {
       $("emptyState").hidden = rows.length > 0;
+      const isClassAggregate = rows.some((row) => row.aggregateClass);
+      const isClassWeekAggregate = rows.some((row) => row.aggregateClassWeek);
+      const isAggregate = rows.some((row) => row.aggregate);
+      const colSpan = isClassAggregate || isAggregate ? 8 : 10;
+      $("studentRowsHead").innerHTML = isClassWeekAggregate ? `<tr>
+              <th>Kelas</th>
+              <th>Bulan</th>
+              <th>Week</th>
+              <th>Siswa</th>
+              <th>Sesi Ideal</th>
+              <th>Hadir</th>
+              <th>Izin</th>
+              <th>Sakit</th>
+              <th>Alpa</th>
+              <th>% Hadir</th>
+            </tr>` : isClassAggregate ? `<tr>
+              <th>Kelas</th>
+              <th>Siswa</th>
+              <th>Sesi Ideal</th>
+              <th>Hadir</th>
+              <th>Izin</th>
+              <th>Sakit</th>
+              <th>Alpa</th>
+              <th>% Hadir</th>
+            </tr>` : isAggregate ? `<tr>
+              <th>Nama Siswa</th>
+              <th>Kelas</th>
+              <th>Sesi Ideal</th>
+              <th>Hadir</th>
+              <th>Izin</th>
+              <th>Sakit</th>
+              <th>Alpa</th>
+              <th>% Hadir</th>
+            </tr>` : `<tr>
+              <th>Nama</th>
+              <th>Kelas</th>
+              <th>Bulan</th>
+              <th>Week</th>
+              <th>Sesi Ideal</th>
+              <th>Hadir</th>
+              <th>Izin</th>
+              <th>Sakit</th>
+              <th>Alpa</th>
+              <th>% Hadir</th>
+            </tr>`;
       $("studentRows").innerHTML = rows.map((row) => {
         const cls = row.attendanceRate >= 0.8 ? "good" : row.attendanceRate >= 0.6 ? "warn" : "bad";
-        return `<tr>
-          <td class="name">${escapeHtml(row.student)}</td>
+        const studentButton = `<button class="name-toggle" onclick="toggleAttendanceAbsences('${encodeURIComponent(row.student || "")}')">${escapeHtml(row.student || "")}</button>`;
+        const inlineAbsences = !isClassAggregate && expandedAttendanceStudent === String(row.student || "").toLowerCase()
+          ? renderInlineAbsences(row.student, colSpan)
+          : "";
+        const classKey = `${String(row.class || "").toLowerCase()}|${row.weekKey || ""}`;
+        const classButton = `<button class="name-toggle" onclick="toggleClassBottomStudents('${encodeURIComponent(row.class || "")}', '${encodeURIComponent(row.weekKey || "")}')">${escapeHtml(row.class || "")}</button>`;
+        const inlineClassBottom = (isClassAggregate || isClassWeekAggregate) && expandedAttendanceClass === classKey
+          ? renderClassBottomStudents(row.class, colSpan, row.weekKey || "")
+          : "";
+        return isClassWeekAggregate ? `<tr>
+          <td class="name">${classButton}</td>
+          <td>${escapeHtml(row.month)}</td>
+          <td>${escapeHtml(row.week)}</td>
+          <td>${numberFmt.format(row.studentCount || 0)}</td>
+          <td class="ideal">${numberFmt.format(row.idealSessions || 0)}</td>
+          <td class="good">${numberFmt.format(row.present)}</td>
+          <td class="permit">${numberFmt.format(row.permit)}</td>
+          <td class="violet">${numberFmt.format(row.sick)}</td>
+          <td class="bad">${numberFmt.format(row.absent)}</td>
+          <td class="${cls}">${Math.round(row.attendanceRate * 100)}%</td>
+        </tr>${inlineClassBottom}` : isClassAggregate ? `<tr>
+          <td class="name">${classButton}</td>
+          <td>${numberFmt.format(row.studentCount || 0)}</td>
+          <td class="ideal">${numberFmt.format(row.idealSessions || 0)}</td>
+          <td class="good">${numberFmt.format(row.present)}</td>
+          <td class="permit">${numberFmt.format(row.permit)}</td>
+          <td class="violet">${numberFmt.format(row.sick)}</td>
+          <td class="bad">${numberFmt.format(row.absent)}</td>
+          <td class="${cls}">${Math.round(row.attendanceRate * 100)}%</td>
+        </tr>${inlineClassBottom}` : isAggregate ? `<tr>
+          <td class="name">${studentButton}</td>
+          <td>${escapeHtml(row.class)}</td>
+          <td class="ideal">${numberFmt.format(row.idealSessions || 0)}</td>
+          <td class="good">${numberFmt.format(row.present)}</td>
+          <td class="permit">${numberFmt.format(row.permit)}</td>
+          <td class="violet">${numberFmt.format(row.sick)}</td>
+          <td class="bad">${numberFmt.format(row.absent)}</td>
+          <td class="${cls}">${Math.round(row.attendanceRate * 100)}%</td>
+        </tr>${inlineAbsences}` : `<tr>
+          <td class="name">${studentButton}</td>
           <td>${escapeHtml(row.class)}</td>
           <td>${escapeHtml(row.month)}</td>
           <td>${escapeHtml(row.week)}</td>
@@ -674,8 +901,77 @@
           <td class="violet">${numberFmt.format(row.sick)}</td>
           <td class="bad">${numberFmt.format(row.absent)}</td>
           <td class="${cls}">${Math.round(row.attendanceRate * 100)}%</td>
-        </tr>`;
+        </tr>${inlineAbsences}`;
       }).join("");
+    }
+
+    function toggleAttendanceAbsences(encodedStudent) {
+      const student = decodeURIComponent(encodedStudent || "").toLowerCase();
+      expandedAttendanceStudent = expandedAttendanceStudent === student ? "" : student;
+      render();
+    }
+
+    function toggleClassBottomStudents(encodedClass, encodedWeekKey = "") {
+      const kelas = decodeURIComponent(encodedClass || "").toLowerCase();
+      const weekKey = decodeURIComponent(encodedWeekKey || "");
+      const key = `${kelas}|${weekKey}`;
+      expandedAttendanceClass = expandedAttendanceClass === key ? "" : key;
+      render();
+    }
+
+    function renderClassBottomStudents(kelas, colSpan, weekKey = "") {
+      const filters = { ...currentFilters(), search: "", kelas, tableSearch: "" };
+      const sourceRows = filteredWeekRows(filters, false).filter((row) => !weekKey || row.weekKey === weekKey);
+      const rows = summarizeAttendanceRowsByStudent(sourceRows)
+        .sort((a, b) => a.attendanceRate - b.attendanceRate || a.present - b.present || a.student.localeCompare(b.student, "id"))
+        .slice(0, 5);
+      return `<tr class="inline-absence-row"><td colspan="${colSpan}">
+        <div class="inline-absence-list">
+          <div class="inline-panel-title"><span>5 siswa kehadiran terbawah</span><span class="pill">${escapeHtml(kelas)}</span></div>
+          ${rows.length ? `<div class="inline-student-table"><table>
+            <thead><tr><th>Nama Siswa</th><th>Sesi Ideal</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>% Hadir</th></tr></thead>
+            <tbody>${rows.map((row) => {
+              const cls = row.attendanceRate >= 0.8 ? "good" : row.attendanceRate >= 0.6 ? "warn" : "bad";
+              return `<tr>
+                <td class="name">${escapeHtml(row.student)}</td>
+                <td class="ideal">${numberFmt.format(row.idealSessions || 0)}</td>
+                <td class="good">${numberFmt.format(row.present)}</td>
+                <td class="permit">${numberFmt.format(row.permit)}</td>
+                <td class="violet">${numberFmt.format(row.sick)}</td>
+                <td class="bad">${numberFmt.format(row.absent)}</td>
+                <td class="${cls}">${Math.round(row.attendanceRate * 100)}%</td>
+              </tr>`;
+            }).join("")}</tbody>
+          </table></div>` : `<div class="empty">Tidak ada data siswa pada kelas ini.</div>`}
+        </div>
+      </td></tr>`;
+    }
+
+    function renderInlineAbsences(studentName, colSpan) {
+      const absences = absenceRecordsForStudent(studentName);
+      return `<tr class="inline-absence-row"><td colspan="${colSpan}">
+        <div class="inline-absence-list">
+          ${absences.length ? absences.map((record) => `<div class="absence-item">
+            <div><div class="absence-date">${formatLongDate(record.date)}</div></div>
+            <span class="status-badge status-${record.status}">${record.status}</span>
+          </div>`).join("") : `<div class="empty">Tidak ada tanggal tidak hadir pada filter ini.</div>`}
+        </div>
+      </td></tr>`;
+    }
+
+    function absenceRecordsForStudent(studentName) {
+      const filters = currentFilters();
+      const selectedName = String(studentName || "").toLowerCase();
+      const noSearchFilters = { ...filters, search: "" };
+      return data.records
+        .filter((record) => {
+          if (String(record.student || "").toLowerCase() !== selectedName) return false;
+          if (!weekMatches(record, noSearchFilters)) return false;
+          if (filters.status && record.status !== filters.status) return false;
+          return ["Alpa", "Izin", "Sakit"].includes(record.status) || String(record.raw || "").trim() === "0";
+        })
+        .map((record) => ({ ...record, status: String(record.raw || "").trim() === "0" ? "Alpa" : record.status }))
+        .sort((a, b) => a.date.localeCompare(b.date));
     }
 
     function summarizeByClass(rows) {
@@ -714,12 +1010,19 @@
     }
 
     function renderAbsences(records, filters) {
-      const exactStudent = data.students.find((student) => student.name.toLowerCase() === filters.search);
+      const exactStudent = findAttendanceStudent(filters.search);
       $("absencePanel").hidden = !exactStudent;
       if (!exactStudent) return;
+      const selectedName = exactStudent.name.toLowerCase();
 
-      const absences = records
-        .filter((record) => record.studentId === exactStudent.id && ["Alpa", "Izin", "Sakit"].includes(record.status))
+      const absences = data.records
+        .filter((record) => {
+          if (record.studentId !== exactStudent.id && String(record.student || "").toLowerCase() !== selectedName) return false;
+          if (!weekMatches(record, filters)) return false;
+          if (filters.status && record.status !== filters.status) return false;
+          return ["Alpa", "Izin", "Sakit"].includes(record.status) || String(record.raw || "").trim() === "0";
+        })
+        .map((record) => ({ ...record, status: String(record.raw || "").trim() === "0" ? "Alpa" : record.status }))
         .sort((a, b) => a.date.localeCompare(b.date));
 
       $("absenceCount").textContent = `${numberFmt.format(absences.length)} tanggal`;
@@ -734,20 +1037,20 @@
     }
 
     function renderCharts(records, rows) {
-      const rowKeys = new Set(rows.map((row) => row.weekKey));
-      const weekly = new Map(data.weeks.filter((week) => rowKeys.has(week.key)).map((week) => [week.key, { label: week.label, ideal: 0, present: 0 }]));
+      const weekly = new Map();
       rows.forEach((row) => {
-        if (!weekly.has(row.weekKey)) return;
-        weekly.get(row.weekKey).ideal += row.idealSessions || 0;
+        const key = row.weekKey || `${row.month || ""}|${row.week || ""}|${row.student || row.class || ""}`;
+        const label = row.aggregate ? row.student : `${row.month || "-"} - ${row.week || "-"}`;
+        if (!weekly.has(key)) weekly.set(key, { label, ideal: 0, present: 0, order: row.periodOrder ?? 999 });
+        const item = weekly.get(key);
+        item.ideal += row.idealSessions || 0;
+        item.present += row.present || 0;
       });
-      records.forEach((record) => {
-        if (record.status !== "Hadir" || !weekly.has(record.weekKey)) return;
-        weekly.get(record.weekKey).present += record.sessions || 0;
-      });
-      const labels = [...weekly.values()].map((item) => item.label);
-      const idealData = [...weekly.values()].map((item) => item.ideal);
-      const presentData = [...weekly.values()].map((item) => item.present);
-      const percentageData = [...weekly.values()].map((item) => item.ideal ? Math.round((item.present / item.ideal) * 100) : 0);
+      const weeklyRows = [...weekly.values()].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label, "id"));
+      const labels = weeklyRows.map((item) => item.label);
+      const idealData = weeklyRows.map((item) => item.ideal);
+      const presentData = weeklyRows.map((item) => item.present);
+      const percentageData = weeklyRows.map((item) => item.ideal ? Math.round((item.present / item.ideal) * 100) : 0);
       const chartMode = $("chartMode").value;
       const isPercentage = chartMode === "percentage";
       const isClassPercentage = chartMode === "classPercentage";
@@ -914,7 +1217,22 @@
         if (selectedWeek && row.week !== selectedWeek) return false;
         return true;
       });
-      const dates = drillVisibleDates(selectedMonth, selectedWeek, rows);
+      let dates = drillVisibleDates(selectedMonth, selectedWeek, rows);
+      if (drillMode === "student" && selectedStudent && isAllDrillPeriodSelected()) {
+        dates = studentTargetDateRange(selectedStudentRecord?.name || selectedStudent);
+      }
+      if (drillMode === "student" && selectedStudent && !dates.length) {
+        dates = studentTargetDateRange(selectedStudentRecord?.name || rows[0]?.student || selectedStudent);
+      }
+      if (drillMode === "student" && !selectedStudent && isAllDrillPeriodSelected()) {
+        dates = classTargetDateRange("");
+      }
+      if (drillMode === "student" && selectedStudent && !isAllDrillPeriodSelected()) {
+        dates = dates.filter((date) => date >= studentDrillStartDate(selectedStudentRecord?.name || selectedStudent));
+      }
+      if (drillMode === "class" && isAllDrillPeriodSelected()) {
+        dates = classTargetDateRange(selectedClass);
+      }
       currentDrillDates = dates;
       if (selectedDrillDate && !dates.includes(selectedDrillDate)) selectedDrillDate = "";
       if (drillMode === "class" && selectedClass && !selectedDrillDate) selectedDrillDate = dates[0] || "";
@@ -950,7 +1268,7 @@
       const total = displayRows.reduce((sum, row) => sum + row.total, 0);
       const dateTitle = dates.length > 1 ? `${numberFmt.format(dates.length)} tanggal` : safeFormatLongDate(dates[0]);
       $("drillDetailTitle").textContent = `${isStudentDetail ? "Detail Drill Siswa" : selectedClass ? `Detail Drill ${selectedClass}` : "Rekap Drill Semua Siswa"} - ${dateTitle}`;
-      $("drillTargetNote").textContent = "Kelas 12 target 10, lainnya 5";
+      $("drillTargetNote").textContent = "Kelas 12 dan SNBT target 10, lainnya 5";
       $("drillTarget").textContent = numberFmt.format(target);
       $("drillCorrect").textContent = numberFmt.format(correct);
       $("drillWrong").textContent = numberFmt.format(wrong);
@@ -1039,9 +1357,11 @@
       const dateSet = new Set(dates);
       const filteredRows = rows.filter((row) => !dateSet.size || dateSet.has(row.date));
       if (drillMode === "class") {
+        $("drillGradeTabs").hidden = true;
         renderClassLeaderboard(filteredRows, dates);
         return;
       }
+      renderStudentGradeTabs();
       const grouped = new Map();
       filteredRows.forEach((row) => {
         const student = findSelectedDrillStudent(row.student.toLowerCase()) || { name: row.student, class: row.class };
@@ -1049,32 +1369,43 @@
         if (!grade) return;
         const key = `${grade}|${student.name.toLowerCase()}`;
         if (!grouped.has(key)) {
-          grouped.set(key, { grade, student: student.name, class: student.class || row.class, correct: 0, target: 0, total: 0 });
+          grouped.set(key, { grade, student: student.name, class: student.class || row.class, correct: 0, target: 0, total: 0, dates: new Set() });
         }
         const item = grouped.get(key);
         item.correct += row.correct;
         item.total += row.total;
+        item.dates.add(row.date);
       });
       grouped.forEach((item) => {
-        const shownDates = Math.max(dates.length, 1);
+        const shownDates = countStudentTargetDates(item.student, dates, item.dates);
         item.target = drillTarget(item.class) * shownDates;
-        item.percent = item.target ? Math.round((item.correct / item.target) * 100) : 0;
+        item.percentExact = item.target ? (item.correct / item.target) * 100 : 0;
+        item.percent = Math.round(item.percentExact);
       });
+      const leaders = [...grouped.values()]
+        .filter((item) => item.grade === selectedDrillGrade)
+        .sort((a, b) => b.percentExact - a.percentExact || b.correct - a.correct || a.student.localeCompare(b.student, "id"))
+        .slice(0, 3);
+      renderRankLeaderboard(leaders, "student");
+    }
+
+    function renderStudentGradeTabs() {
       const grades = ["6 SD", "7 SMP", "8 SMP", "9 SMP", "10 SMA", "11 SMA", "12 SMA"];
-      $("drillLeaderboardGrid").innerHTML = grades.map((grade) => {
-        const leaders = [...grouped.values()]
-          .filter((item) => item.grade === grade && item.percent > 0)
-          .sort((a, b) => b.percent - a.percent || b.correct - a.correct || a.student.localeCompare(b.student, "id"))
-          .slice(0, 3);
-        return `<div class="leaderboard-card">
-          <div class="leaderboard-grade">${grade}</div>
-          ${leaders.length ? leaders.map((item, index) => `<div class="leaderboard-item">
-            <span class="leaderboard-rank">${index + 1}</span>
-            <div class="leaderboard-score score-${index + 1}">${item.percent}%</div>
-            <div><div class="leaderboard-name">${escapeHtml(item.student)}</div><div class="leaderboard-meta">${numberFmt.format(item.correct)} benar dari target ${numberFmt.format(item.target)}</div></div>
-          </div>`).join("") : `<div class="empty">Belum ada data.</div>`}
-        </div>`;
-      }).join("");
+      if (!grades.includes(selectedDrillGrade)) selectedDrillGrade = "12 SMA";
+      $("drillGradeTabs").hidden = false;
+      $("drillGradeTabs").innerHTML = grades.map((grade) => `<button class="grade-tab ${grade === selectedDrillGrade ? "active" : ""}" data-drill-grade="${escapeHtml(grade)}">${escapeHtml(grade)}</button>`).join("");
+    }
+
+    function renderRankLeaderboard(leaders) {
+      const medals = ["🥇", "🥈", "🥉"];
+      $("drillLeaderboardGrid").innerHTML = `<div class="leaderboard-card class-leaderboard">
+        ${leaders.length ? leaders.map((item, index) => `<div class="leaderboard-item leaderboard-class-rank-${index + 1}">
+          <span class="leaderboard-rank">#${index + 1}</span>
+          <div class="leaderboard-medal" aria-label="Medali peringkat ${index + 1}">${medals[index]}</div>
+          <div class="leaderboard-info"><div class="leaderboard-name">${escapeHtml(item.student || item.class)}</div><div class="leaderboard-meta">${numberFmt.format(item.correct)} benar dari target ${numberFmt.format(item.target)}</div></div>
+          <div class="leaderboard-score score-${index + 1}">${item.percent}%</div>
+        </div>`).join("") : `<div class="empty">Belum ada data.</div>`}
+      </div>`;
     }
 
     function renderClassLeaderboard(rows, dates) {
@@ -1092,24 +1423,43 @@
         item.dates.add(row.date);
       });
       grouped.forEach((item) => {
-        const shownDates = Math.max(item.dates.size, 1);
-        const activeCount = activeStudentsByClass(item.class).length || item.students.size;
-        item.target = activeCount * drillTarget(item.class) * shownDates;
+        item.target = classLeaderboardTarget(item);
         item.percentExact = item.target ? (item.correct / item.target) * 100 : 0;
         item.percent = Math.round(item.percentExact);
       });
       const leaders = [...grouped.values()]
         .sort((a, b) => b.percentExact - a.percentExact || b.correct - a.correct || a.class.localeCompare(b.class, "id"))
         .slice(0, 3);
-      const medals = ["🥇", "🥈", "🥉"];
-      $("drillLeaderboardGrid").innerHTML = `<div class="leaderboard-card class-leaderboard">
-        ${leaders.length ? leaders.map((item, index) => `<div class="leaderboard-item">
-          <span class="leaderboard-rank">Peringkat ${index + 1}</span>
-          <div class="leaderboard-medal" aria-label="Medali peringkat ${index + 1}">${medals[index]}</div>
-          <div><div class="leaderboard-name">${escapeHtml(item.class)}</div><div class="leaderboard-meta">${numberFmt.format(item.correct)} benar dari target ${numberFmt.format(item.target)}</div></div>
-          <div class="leaderboard-score score-${index + 1}">${item.percent}%</div>
-        </div>`).join("") : `<div class="empty">Belum ada data.</div>`}
-      </div>`;
+      renderRankLeaderboard(leaders);
+    }
+
+    function classLeaderboardTarget(item) {
+      const today = DASHBOARD_MIN_TODAY;
+      const students = activeStudentsByClass(item.class);
+      if (students.length) {
+        return students.reduce((sum, student) => {
+          const startDate = studentDrillStartDate(student.name);
+          const targetDates = countDateRangeUntilToday(startDate, today);
+          return sum + drillTarget(student.class) * targetDates;
+        }, 0);
+      }
+      return [...item.students].reduce((sum, studentName) => {
+        const startDate = studentDrillStartDate(studentName);
+        const targetDates = countDateRangeUntilToday(startDate, today);
+        return sum + drillTarget(item.class) * targetDates;
+      }, 0);
+    }
+
+    function countDateRangeUntilToday(startDate, today = DASHBOARD_MIN_TODAY) {
+      if (!startDate || startDate > today) return 0;
+      let count = 0;
+      const current = new Date(`${startDate}T00:00:00`);
+      const end = new Date(`${today}T00:00:00`);
+      while (current <= end) {
+        count += 1;
+        current.setDate(current.getDate() + 1);
+      }
+      return count;
     }
 
     function gradeFromClass(kelas) {
@@ -1224,13 +1574,25 @@
 
     function findSelectedDrillStudent(selectedStudent) {
       if (!selectedStudent) return null;
-      const exactDrill = drillData.find((row) => row.student.toLowerCase() === selectedStudent);
-      if (exactDrill) return { name: exactDrill.student, class: exactDrill.class };
-      const exactStudent = data.students.find((student) => student.name.toLowerCase() === selectedStudent);
+      const attendanceStudents = [
+        ...((window.ATTENDANCE_DATA?.students) || []),
+        ...(data.students || [])
+      ];
+      const exactStudent = attendanceStudents.find((student) => student.name.toLowerCase() === selectedStudent);
       if (exactStudent) return exactStudent;
+      const exactDrill = drillData.find((row) => row.student.toLowerCase() === selectedStudent);
+      if (exactDrill) {
+        const attendanceStudent = attendanceStudents.find((student) => student.name.toLowerCase() === exactDrill.student.toLowerCase());
+        return attendanceStudent || { name: exactDrill.student, class: exactDrill.class };
+      }
+      const partialStudent = attendanceStudents.find((student) => student.name.toLowerCase().includes(selectedStudent));
+      if (partialStudent) return partialStudent;
       const partialDrill = drillData.find((row) => row.student.toLowerCase().includes(selectedStudent));
-      if (partialDrill) return { name: partialDrill.student, class: partialDrill.class };
-      return data.students.find((student) => student.name.toLowerCase().includes(selectedStudent)) || null;
+      if (partialDrill) {
+        const attendanceStudent = attendanceStudents.find((student) => student.name.toLowerCase() === partialDrill.student.toLowerCase());
+        return attendanceStudent || { name: partialDrill.student, class: partialDrill.class };
+      }
+      return null;
     }
 
     function activeStudentsByClass(kelas) {
@@ -1276,7 +1638,101 @@
     }
 
     function drillTarget(kelas) {
-      return String(kelas || "").includes("12") ? 10 : 5;
+      const text = String(kelas || "").toUpperCase();
+      return text.includes("12") || text.includes("SNBT") ? 10 : 5;
+    }
+
+    function countStudentTargetDates(studentName, visibleDates, actualDates) {
+      const startDate = studentDrillStartDate(studentName);
+      const sourceDates = (visibleDates?.length ? visibleDates : [...actualDates])
+        .filter((date) => String(date || "").match(/^\d{4}-\d{2}-\d{2}$/));
+      if (!startDate) return Math.max(actualDates?.size || sourceDates.length, 1);
+      return sourceDates.filter((date) => date >= startDate).length;
+    }
+
+    function isAllDrillPeriodSelected() {
+      return !$("drillMonthSelect").value && !$("drillWeekSelect").value;
+    }
+
+    function studentTargetDateRange(studentName) {
+      const startDate = studentDrillStartDate(studentName) || "2026-07-13";
+      return dateRangeUntilToday(startDate);
+    }
+
+    function classTargetDateRange(kelas) {
+      const students = kelas ? activeStudentsByClass(kelas) : data.students.filter(isActiveStudent);
+      const startDates = students.map((student) => studentDrillStartDate(student.name)).filter(Boolean).sort();
+      return dateRangeUntilToday(startDates[0] || "2026-07-13");
+    }
+
+    function dateRangeUntilToday(startDate, today = DASHBOARD_MIN_TODAY) {
+      if (!startDate || startDate > today) return [];
+      const dates = [];
+      const current = new Date(`${startDate}T00:00:00`);
+      const end = new Date(`${today}T00:00:00`);
+      while (current <= end) {
+        dates.push(isoLocalDate(current));
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function latestIsoDate(...dates) {
+      const sortedDates = dates.filter((date) => String(date || "").match(/^\d{4}-\d{2}-\d{2}$/)).sort();
+      return sortedDates.length ? sortedDates[sortedDates.length - 1] : "";
+    }
+
+    function studentDrillStartDate(studentName) {
+      const search = String(studentName || "").trim().toLowerCase();
+      const attendanceStudents = [
+        ...(data.students || []),
+        ...((window.ATTENDANCE_DATA?.students) || [])
+      ];
+      const student = attendanceStudents.find((item) => item.paidDate && item.name.toLowerCase() === search)
+        || attendanceStudents.find((item) => item.paidDate && (item.name.toLowerCase().includes(search) || search.includes(item.name.toLowerCase())))
+        || attendanceStudents.find((item) => item.name.toLowerCase() === search)
+        || attendanceStudents.find((item) => item.name.toLowerCase().includes(search) || search.includes(item.name.toLowerCase()));
+      const paidDate = parseIndonesianDate(student?.paidDate);
+      const minimumStart = "2026-07-13";
+      if (!paidDate) return minimumStart;
+      if (paidDate < minimumStart) return minimumStart;
+      const nextDate = new Date(`${paidDate}T00:00:00`);
+      nextDate.setDate(nextDate.getDate() + 1);
+      return isoLocalDate(nextDate);
+    }
+
+    function parseIndonesianDate(value) {
+      const text = String(value || "").trim();
+      const sheetIso = normalizeSheetIsoDate(text);
+      if (sheetIso) return sheetIso;
+      const isoMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (isoMatch) return isoMatch[1];
+      const match = text.match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+      if (!match) return "";
+      const month = {
+        jan: "01", januari: "01",
+        feb: "02", februari: "02",
+        mar: "03", maret: "03",
+        apr: "04", april: "04",
+        mei: "05",
+        jun: "06", juni: "06",
+        jul: "07", juli: "07",
+        agu: "08", agustus: "08",
+        sep: "09", september: "09",
+        okt: "10", oktober: "10",
+        nov: "11", november: "11",
+        des: "12", desember: "12"
+      }[match[2].toLowerCase()];
+      if (!month) return "";
+      return `${match[3]}-${month}-${String(Number(match[1])).padStart(2, "0")}`;
+    }
+
+    function formatPaidDate(value) {
+      const iso = parseIndonesianDate(value);
+      if (!iso) return "";
+      const date = new Date(`${iso}T00:00:00`);
+      if (Number.isNaN(date.getTime())) return String(value || "");
+      return new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(date);
     }
 
     function normalizeDrillDate(value) {
@@ -1363,7 +1819,7 @@
 
     function saveLiveData(refreshedData, date) {
       try {
-        localStorage.setItem(LIVE_DATA_STORAGE_KEY, JSON.stringify({ updatedAt: date.toISOString(), data: refreshedData }));
+        localStorage.setItem(LIVE_DATA_STORAGE_KEY, JSON.stringify({ version: LIVE_DATA_SCHEMA_VERSION, updatedAt: date.toISOString(), data: refreshedData }));
       } catch (error) {}
     }
 
@@ -1371,6 +1827,7 @@
       try {
         const saved = JSON.parse(localStorage.getItem(LIVE_DATA_STORAGE_KEY) || "null");
         if (!saved?.data) return;
+        if (saved.version !== LIVE_DATA_SCHEMA_VERSION) return;
         const restoredData = normalizeData(saved.data);
         validateStoredLiveData(restoredData);
         data = restoredData;
@@ -1728,7 +2185,7 @@
           weekMap.set(weekKey, { key: weekKey, month, week, start: block.dateColumns[0].iso, end: block.dateColumns.at(-1).iso, label: `${month} - ${week}`, order: block.order, weekOrder: weekNumber(week) });
           studentWeeks.push({ studentId, student: student.name, class: student.class, month, week, weekKey, weekStart: block.dateColumns[0].iso, weekEnd: block.dateColumns.at(-1).iso, idealSessions, periodOrder: block.order });
           block.dateColumns.forEach((column) => {
-            const raw = String(row[column.index] || "").trim();
+            const raw = String(row[column.index] ?? "").trim();
             const status = statusKind(raw);
             if (!status) return;
             records.push({ studentId, student: student.name, class: student.class, date: column.iso, dateLabel: column.label, day: column.day, raw, status, sessions: toNumber(raw), month, week, weekKey, weekStart: block.dateColumns[0].iso, weekEnd: block.dateColumns.at(-1).iso, idealSessions, periodOrder: block.order });
@@ -1792,12 +2249,15 @@
     }
 
     function statusKind(value) {
-      const text = String(value || "").trim();
+      const text = String(value ?? "").trim();
       if (!text) return "";
-      if (text.toLowerCase() === "izin") return "Izin";
-      if (text.toLowerCase() === "sakit") return "Sakit";
-      const number = toNumber(text);
-      if (!Number.isNaN(number)) return number > 0 ? "Hadir" : "Alpa";
+      const lower = text.toLowerCase();
+      if (lower === "izin") return "Izin";
+      if (lower === "sakit") return "Sakit";
+      if (["alpa", "alpha"].includes(lower)) return "Alpa";
+      if (text.match(/^-?\d+([,.]\d+)?$/)) {
+        return toNumber(text) > 0 ? "Hadir" : "Alpa";
+      }
       return text;
     }
 
@@ -1828,13 +2288,12 @@
 
     function classOrder(kelas) {
       const text = String(kelas || "").toUpperCase();
-      if (text.includes("SD")) return 1;
-      if (text.includes("SMP")) return 2;
-      if (text.includes("SMA")) return 3;
-      if (text.includes("KURMER")) return 4;
-      if (text.includes("SIAP SNBT")) return 5;
-      if (text.includes("KEDINASAN")) return 6;
-      return 99;
+      if (!text || text === "-") return 999;
+      if (text.includes("SIAP SNBT")) return 1300;
+      if (text.includes("KEDINASAN")) return 1400;
+      const gradeMatch = text.match(/\b(6|7|8|9|10|11|12)\b/);
+      if (gradeMatch) return Number(gradeMatch[1]) * 100;
+      return 900;
     }
 
     function compareClass(a, b) {

@@ -69,12 +69,15 @@ function toNumber(value) {
 }
 
 function statusKind(value) {
-  const text = String(value || "").trim();
+  const text = String(value ?? "").trim();
   if (!text) return "";
-  if (text.toLowerCase() === "izin") return "Izin";
-  if (text.toLowerCase() === "sakit") return "Sakit";
-  const number = toNumber(text);
-  if (!Number.isNaN(number)) return number > 0 ? "Hadir" : "Alpa";
+  const lower = text.toLowerCase();
+  if (lower === "izin") return "Izin";
+  if (lower === "sakit") return "Sakit";
+  if (["alpa", "alpha"].includes(lower)) return "Alpa";
+  if (text.match(/^-?\d+([,.]\d+)?$/)) {
+    return toNumber(text) > 0 ? "Hadir" : "Alpa";
+  }
   return text;
 }
 
@@ -151,7 +154,7 @@ function buildAttendanceData(rows) {
       weekMap.set(weekKey, { key: weekKey, month, week, start: block.dateColumns[0].iso, end: block.dateColumns[block.dateColumns.length - 1].iso, label: `${month} - ${week}`, order: block.order, weekOrder: weekNumber(week) });
       studentWeeks.push({ studentId, student: student.name, class: student.class, month, week, weekKey, weekStart: block.dateColumns[0].iso, weekEnd: block.dateColumns[block.dateColumns.length - 1].iso, idealSessions, periodOrder: block.order });
       block.dateColumns.forEach((column) => {
-        const raw = String(row[column.index] || "").trim();
+        const raw = String(row[column.index] ?? "").trim();
         const status = statusKind(raw);
         if (!status) return;
         records.push({ studentId, student: student.name, class: student.class, date: column.iso, dateLabel: column.label, day: column.day, raw, status, sessions: toNumber(raw), month, week, weekKey, weekStart: block.dateColumns[0].iso, weekEnd: block.dateColumns[block.dateColumns.length - 1].iso, idealSessions, periodOrder: block.order });
