@@ -6,6 +6,7 @@
   <title>Monitoring Kesiswaan BAHER</title>
   <script src="chart.umd.min.js"></script>
   <script src="attendance-data.js"></script>
+  <script src="drill-data.js"></script>
   <style>
     :root {
       --bg: #eef8fd;
@@ -143,6 +144,7 @@
     .student-subject-detail th, .student-subject-detail td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: center; }
     .student-subject-detail th:first-child, .student-subject-detail td:first-child, .student-subject-detail th:nth-child(2), .student-subject-detail td:nth-child(2) { text-align: left; }
     .leaderboard-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; padding: 14px; align-items: stretch; }
+    .leaderboard-grid:has(.class-leaderboard) { grid-template-columns: 1fr; }
     .leaderboard-card { min-height: 236px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; overflow: hidden; display: grid; grid-template-rows: auto repeat(3, minmax(58px, 1fr)); }
     .leaderboard-grade { padding: 10px 12px; font-size: 16px; font-weight: 900; color: var(--blue-dark); background: #e9f8ff; border-bottom: 1px solid var(--line); }
     .leaderboard-item { min-height: 58px; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 8px; align-items: center; padding: 9px 10px; border-bottom: 1px solid var(--line); }
@@ -154,6 +156,16 @@
     .score-3 { color: #b7791f !important; background: #fff7ed; border-color: #d69e2e; }
     .leaderboard-meta { color: var(--muted); font-size: 11px; line-height: 1.2; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .leaderboard-score { display: inline-flex; align-items: center; justify-content: flex-start; justify-self: start; color: #10B981; font-weight: 900; font-size: 16px; line-height: 1; text-align: left; }
+    .class-leaderboard { width: 100%; min-height: 0; border: 0; background: transparent; display: grid; grid-template-rows: none; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; overflow: visible; }
+    .class-leaderboard .leaderboard-grade { display: none; }
+    .class-leaderboard .leaderboard-item { min-height: 132px; display: grid; grid-template-columns: 48px minmax(0, 1fr) 82px; gap: 14px; align-items: center; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: #fbfdff; }
+    .class-leaderboard .leaderboard-item:last-child { border-right: 1px solid var(--line); }
+    .class-leaderboard .leaderboard-rank { display: none; }
+    .class-leaderboard .leaderboard-name { display: block; font-size: 18px; line-height: 1.18; white-space: normal; overflow: visible; -webkit-line-clamp: unset; }
+    .class-leaderboard .leaderboard-meta { margin-top: 8px; font-size: 13px; line-height: 1.25; white-space: normal; overflow: visible; text-overflow: clip; }
+    .class-leaderboard .leaderboard-score { justify-self: end; font-size: 24px; white-space: nowrap; }
+    .leaderboard-medal { font-size: 34px; line-height: 1; text-align: center; }
+    .class-leaderboard .empty { grid-column: 1 / -1; display: flex; align-items: center; padding: 16px; }
     .detail-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; padding: 16px; }
     .detail-item { border: 1px solid var(--line); border-radius: 8px; padding: 14px; background: #fbfdff; }
     .detail-label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; }
@@ -177,6 +189,7 @@
       .rg-logo { width: 116px; }
       .filters, .stats { grid-template-columns: 1fr; }
       .leaderboard-grid { grid-template-columns: 1fr; }
+      .class-leaderboard { grid-template-columns: 1fr; }
       .detail-grid { grid-template-columns: 1fr 1fr; }
       .date-row { grid-template-columns: 1fr 1fr; }
       .date-cell:first-child { grid-column: 1 / -1; }
@@ -323,7 +336,6 @@
         <label id="drillClassFilter" hidden>Kelas<select id="drillClassSelect"></select></label>
         <label>Month<select id="drillMonthSelect"></select></label>
         <label>Week<select id="drillWeekSelect"></select></label>
-        <button class="refresh" id="drillRefreshBtn">Refresh Drill</button>
       </section>
       <div class="panel" id="drillLeaderboardPanel" hidden>
         <div class="panel-head">
@@ -396,11 +408,12 @@
     const SHEET_PROXY_URL = "/.netlify/functions/sheet";
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhfHMZOJZELgfkGcyFjL-GXjHYD9wseeo9PazOYqCr5i-knQLRtXo8lgGH0ywv8X3JSw/exec";
     const LIVE_DATA_STORAGE_KEY = "baherLiveAttendanceData";
+    const LIVE_DRILL_STORAGE_KEY = "baherLiveDrillData";
     const USE_NETLIFY_PROXY = location.hostname.includes("netlify");
     let appsScriptDataPromise = null;
     let data = normalizeData(window.ATTENDANCE_DATA || { students: [], weeks: [], studentWeeks: [], records: [] });
-    let drillData = [];
-    let drillLoaded = false;
+    let drillData = Array.isArray(window.DRILL_DATA) ? window.DRILL_DATA : [];
+    let drillLoaded = Array.isArray(window.DRILL_DATA);
     let selectedDrillDate = "";
     let currentDrillDates = [];
     let drillMode = "student";
@@ -420,6 +433,7 @@
     function init() {
       initAccessGate();
       restoreLiveData();
+      restoreLiveDrillData();
       rebuildIndexes();
       fillOptions();
       inputIds.map($).forEach((input) => {
@@ -431,7 +445,6 @@
       $("downloadPdfBtn").addEventListener("click", downloadStudentPdf);
       $("downloadDrillPdfBtn").addEventListener("click", downloadDrillPdf);
       $("refreshBtn").addEventListener("click", refreshData);
-      $("drillRefreshBtn").addEventListener("click", () => loadDrillData(true));
       ["drillStudentInput", "drillClassSelect", "drillMonthSelect", "drillWeekSelect"].forEach((id) => {
         $(id).addEventListener("input", renderDrill);
         $(id).addEventListener("change", renderDrill);
@@ -460,7 +473,11 @@
       document.querySelectorAll(".nav-tab").forEach((tab) => {
         tab.classList.toggle("active", tab.dataset.view === viewId);
       });
-      if (viewId === "drillView" && !drillLoaded) loadDrillData();
+      if (viewId === "drillView") {
+        fillDrillFilters();
+        renderDrill();
+        if (!drillLoaded) loadDrillData();
+      }
     }
 
 
@@ -769,12 +786,12 @@
 
     async function loadDrillData(force = false) {
       if (drillLoaded && !force) return;
-      const button = $("drillRefreshBtn");
-      const previous = button.textContent;
-      button.disabled = true;
-      button.textContent = "Memuat...";
       try {
-        drillData = buildDrillData(await loadSheetRows("246622240"));
+        if (Array.isArray(window.DRILL_DATA) && !force) {
+          drillData = window.DRILL_DATA;
+        } else {
+          drillData = buildDrillData(await loadSheetRows("246622240"));
+        }
         drillLoaded = true;
         selectedDrillDate = "";
         fillDrillFilters();
@@ -786,9 +803,6 @@
         fillDrillFilters();
         renderDrill();
         alert(`Data Raw Drill gagal dimuat: ${error.message || error}. Filter kelas, nama siswa, month, dan week tetap tersedia dari data presensi.`);
-      } finally {
-        button.disabled = false;
-        button.textContent = previous;
       }
     }
 
@@ -906,7 +920,12 @@
       if (drillMode === "class" && selectedClass && !selectedDrillDate) selectedDrillDate = dates[0] || "";
       $("drillDateCount").textContent = `${numberFmt.format(dates.length)} tanggal`;
       $("drillDateGrid").innerHTML = dates.length ? dates.map((date) => renderDrillDateRow(date, rows) + renderStudentSubjectDetail(date, rows)).join("") : `<div class="empty">Tidak ada tanggal sesuai filter.</div>`;
-      renderDrillLeaderboard(rows, dates);
+      if (selectedStudent) {
+        $("drillLeaderboardPanel").hidden = true;
+        $("drillLeaderboardGrid").innerHTML = "";
+      } else {
+        renderDrillLeaderboard(rows, dates);
+      }
       renderDrillDetail(rows, selectedClass, selectedStudent, dates);
     }
 
@@ -1078,15 +1097,15 @@
         item.percent = item.target ? Math.round((item.correct / item.target) * 100) : 0;
       });
       const leaders = [...grouped.values()]
-        .filter((item) => item.percent > 0)
         .sort((a, b) => b.percent - a.percent || b.correct - a.correct || a.class.localeCompare(b.class, "id"))
         .slice(0, 3);
-      $("drillLeaderboardGrid").innerHTML = `<div class="leaderboard-card">
-        <div class="leaderboard-grade">Top 3 Kelas</div>
+      const medals = ["🥇", "🥈", "🥉"];
+      $("drillLeaderboardGrid").innerHTML = `<div class="leaderboard-card class-leaderboard">
         ${leaders.length ? leaders.map((item, index) => `<div class="leaderboard-item">
-          <span class="leaderboard-rank">${index + 1}</span>
-          <div class="leaderboard-score score-${index + 1}">${item.percent}%</div>
+          <span class="leaderboard-rank">Peringkat ${index + 1}</span>
+          <div class="leaderboard-medal" aria-label="Medali peringkat ${index + 1}">${medals[index]}</div>
           <div><div class="leaderboard-name">${escapeHtml(item.class)}</div><div class="leaderboard-meta">${numberFmt.format(item.correct)} benar dari target ${numberFmt.format(item.target)}</div></div>
+          <div class="leaderboard-score score-${index + 1}">${item.percent}%</div>
         </div>`).join("") : `<div class="empty">Belum ada data.</div>`}
       </div>`;
     }
@@ -1297,12 +1316,18 @@
       try {
         appsScriptDataPromise = null;
         const refreshedData = normalizeData(buildAttendanceData(await loadSheetRows("0")));
+        const refreshedDrillData = buildDrillData(await loadSheetRows("246622240"));
         validateRefreshedAttendanceData(refreshedData);
         data = refreshedData;
+        drillData = refreshedDrillData;
+        drillLoaded = true;
         saveLiveData(refreshedData, new Date());
+        saveLiveDrillData(refreshedDrillData, new Date());
         rebuildIndexes();
         fillOptions();
+        fillDrillFilters();
         resetFilters();
+        renderDrill();
         $("dataSubtitle").textContent += ` | diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
         updateLiveScriptStatus(new Date());
       } catch (error) {
@@ -1343,6 +1368,21 @@
         validateStoredLiveData(restoredData);
         data = restoredData;
         if (saved.updatedAt) updateLiveScriptStatus(new Date(saved.updatedAt));
+      } catch (error) {}
+    }
+
+    function saveLiveDrillData(refreshedDrillData, date) {
+      try {
+        localStorage.setItem(LIVE_DRILL_STORAGE_KEY, JSON.stringify({ updatedAt: date.toISOString(), data: refreshedDrillData }));
+      } catch (error) {}
+    }
+
+    function restoreLiveDrillData() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LIVE_DRILL_STORAGE_KEY) || "null");
+        if (!Array.isArray(saved?.data) || !saved.data.length) return;
+        drillData = saved.data;
+        drillLoaded = true;
       } catch (error) {}
     }
 
