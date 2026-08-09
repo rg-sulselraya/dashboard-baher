@@ -425,7 +425,7 @@
     const numberFmt = new Intl.NumberFormat("id-ID");
     let trendChart;
     let statusChart;
-    const ACCESS_CODE = "BAHER2026";
+    const ACCESS_CODE = "baher03";
 
     const $ = (id) => document.getElementById(id);
     const inputIds = ["searchInput", "classSelect", "monthSelect", "weekSelect", "statusSelect", "periodSelect", "tableSearch", "sortSelect", "chartMode"];
@@ -505,7 +505,7 @@
       }
       $("accessForm").addEventListener("submit", (event) => {
         event.preventDefault();
-        if ($("accessCode").value.trim().toUpperCase() === ACCESS_CODE) {
+        if ($("accessCode").value.trim() === ACCESS_CODE) {
           setAccess();
           $("accessScreen").hidden = true;
           $("accessScreen").style.display = "none";
