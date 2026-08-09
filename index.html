@@ -60,7 +60,8 @@
     .access-error { color: var(--red); font-size: 13px; min-height: 18px; }
 
     .filters { display: grid; grid-template-columns: 1.25fr 1fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
-    #attendanceView .filters { grid-template-columns: minmax(210px, 1.25fr) minmax(160px, 1fr) minmax(170px, 1fr) minmax(130px, 0.7fr) minmax(120px, 0.62fr) minmax(128px, 0.65fr) minmax(160px, 0.8fr); gap: 10px; }
+    #attendanceView .filters { grid-template-columns: minmax(260px, 1.3fr) minmax(190px, 1fr) repeat(4, minmax(150px, 0.85fr)); gap: 10px; }
+    #attendanceView.attendance-class-mode .filters { grid-template-columns: minmax(260px, 1.35fr) repeat(4, minmax(170px, 1fr)); }
     label { display: grid; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 800; }
     input, select { width: 100%; min-height: 39px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #fff; font: inherit; font-weight: 650; }
     select[multiple] { height: 92px; padding: 7px 10px; }
@@ -499,6 +500,7 @@
 
     function setAttendanceMode(mode) {
       attendanceMode = mode === "class" ? "class" : "student";
+      $("attendanceView").classList.toggle("attendance-class-mode", attendanceMode === "class");
       document.querySelectorAll("[data-attendance-mode]").forEach((tab) => tab.classList.toggle("active", tab.dataset.attendanceMode === attendanceMode));
       $("attendanceStudentFilter").hidden = attendanceMode !== "student";
       $("attendancePaidDateFilter").hidden = attendanceMode !== "student";
