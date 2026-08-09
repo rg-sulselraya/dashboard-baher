@@ -28,18 +28,24 @@
     header { background: linear-gradient(135deg, var(--blue), var(--green)); color: #fff; position: sticky; top: 0; z-index: 10; box-shadow: 0 10px 30px rgba(0, 127, 199, 0.22); }
     .wrap { width: min(1440px, calc(100% - 32px)); margin: 0 auto; }
     .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 0 8px; }
+    .header-side { width: 330px; display: grid; gap: 8px; }
     .brand { display: flex; align-items: center; gap: 14px; }
     h1 { margin: 0; font-size: 22px; line-height: 1.15; letter-spacing: 0; }
     h2 { margin: 0; font-size: 16px; letter-spacing: 0; }
     .subtitle { margin-top: 2px; color: rgba(255, 255, 255, 0.86); font-size: 12px; }
     .actions, .table-tools { display: flex; gap: 10px; align-items: center; }
-    .nav-tabs { display: flex; gap: 8px; padding: 0 0 10px; overflow-x: auto; }
+    .nav-actions { margin-left: auto; width: 330px; }
+    .nav-actions button { flex: 1; }
+    .live-status { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 34px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, 0.38); border-radius: 8px; background: rgba(255, 255, 255, 0.18); color: #fff; font-size: 12px; font-weight: 850; box-shadow: 0 8px 22px rgba(19, 32, 47, 0.12); white-space: nowrap; }
+    .live-dot { width: 11px; height: 11px; border-radius: 999px; background: #5ee4a0; box-shadow: 0 0 0 4px rgba(94, 228, 160, 0.14); }
+    .nav-tabs { display: flex; align-items: center; gap: 8px; padding: 0 0 10px; overflow-x: auto; }
     .nav-tab { border-color: rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.14); color: #fff; white-space: nowrap; }
-    .nav-tab.active { background: #fff; color: var(--blue); border-color: #fff; }
+    .nav-tab.active { background: #F58220; color: #fff; border-color: #F58220; box-shadow: 0 8px 20px rgba(245, 130, 32, 0.24); }
     .rg-logo { width: 96px; height: auto; display: block; background: #fff; border-radius: 8px; padding: 4px 6px; box-shadow: 0 6px 18px rgba(19, 32, 47, 0.12); }
     button { border: 1px solid var(--line); background: #fff; color: var(--ink); height: 36px; padding: 0 12px; border-radius: 8px; font-weight: 750; cursor: pointer; }
     button.primary { color: #fff; background: var(--blue-dark); border-color: var(--blue-dark); }
-    button.refresh { color: var(--blue-dark); border-color: rgba(0, 127, 199, 0.22); }
+    button.refresh { color: var(--green); border-color: rgba(16, 185, 129, 0.28); }
+    button.danger { color: var(--red); border-color: rgba(239, 68, 68, 0.28); }
     button.download-pdf { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: #fff; background: #F58220; border-color: #F58220; min-width: 126px; }
     button:disabled { opacity: 0.62; cursor: progress; }
     main { padding: 22px 0 34px; }
@@ -164,8 +170,10 @@
       .wrap { width: min(100% - 20px, 1440px); }
       .topbar, .panel-head { align-items: flex-start; flex-direction: column; }
       .brand { align-items: flex-start; flex-direction: column; }
-      .actions, .table-tools, .nav-tabs { width: 100%; }
+      .header-side, .actions, .table-tools, .nav-tabs { width: 100%; }
+      .nav-actions { margin-left: 0; }
       .actions button { flex: 1; }
+      .live-status { font-size: 13px; }
       .rg-logo { width: 116px; }
       .filters, .stats { grid-template-columns: 1fr; }
       .leaderboard-grid { grid-template-columns: 1fr; }
@@ -198,10 +206,8 @@
           <div class="subtitle" id="dataSubtitle">Memuat data presensi...</div>
         </div>
       </div>
-      <div class="actions">
-        <button class="refresh" id="refreshBtn">Refresh</button>
-        <button id="resetBtn">Reset</button>
-        <button class="primary" id="downloadBtn">Unduh CSV</button>
+      <div class="header-side">
+        <div class="live-status" id="liveScriptStatus"><span class="live-dot"></span><span>Live Apps Script: siap</span></div>
       </div>
     </div>
     <nav class="wrap nav-tabs" aria-label="Menu monitoring">
@@ -209,6 +215,11 @@
       <button class="nav-tab" data-view="drillView">Drill Soal</button>
       <button class="nav-tab" data-view="tryoutView">Tryout Siswa</button>
       <button class="nav-tab" data-view="prepostView">Pre test & Post test Siswa</button>
+      <div class="actions nav-actions">
+        <button class="refresh" id="refreshBtn">Refresh</button>
+          <button class="danger" id="resetBtn">Reset</button>
+        <button class="primary" id="downloadBtn">Unduh CSV</button>
+      </div>
     </nav>
   </header>
 
@@ -383,7 +394,10 @@
 
   <script>
     const SHEET_PROXY_URL = "/.netlify/functions/sheet";
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhfHMZOJZELgfkGcyFjL-GXjHYD9wseeo9PazOYqCr5i-knQLRtXo8lgGH0ywv8X3JSw/exec";
+    const LIVE_DATA_STORAGE_KEY = "baherLiveAttendanceData";
     const USE_NETLIFY_PROXY = location.hostname.includes("netlify");
+    let appsScriptDataPromise = null;
     let data = normalizeData(window.ATTENDANCE_DATA || { students: [], weeks: [], studentWeeks: [], records: [] });
     let drillData = [];
     let drillLoaded = false;
@@ -405,6 +419,7 @@
 
     function init() {
       initAccessGate();
+      restoreLiveData();
       rebuildIndexes();
       fillOptions();
       inputIds.map($).forEach((input) => {
@@ -1241,6 +1256,8 @@
     function normalizeDrillDate(value) {
       const text = String(value || "").trim();
       if (!text) return "Tanpa tanggal";
+      const sheetIso = normalizeSheetIsoDate(text);
+      if (sheetIso) return sheetIso;
       const native = new Date(text);
       if (!Number.isNaN(native.getTime())) return native.toISOString().slice(0, 10);
       const monthMap = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", Mei: "05", Jun: "06", Jul: "07", Agu: "08", Sep: "09", Okt: "10", Nov: "11", Des: "12" };
@@ -1278,13 +1295,16 @@
       button.disabled = true;
       button.textContent = "Memuat...";
       try {
+        appsScriptDataPromise = null;
         const refreshedData = normalizeData(buildAttendanceData(await loadSheetRows("0")));
         validateRefreshedAttendanceData(refreshedData);
         data = refreshedData;
+        saveLiveData(refreshedData, new Date());
         rebuildIndexes();
         fillOptions();
         resetFilters();
         $("dataSubtitle").textContent += ` | diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+        updateLiveScriptStatus(new Date());
       } catch (error) {
         alert(`Refresh gagal: ${error.message || "data dari spreadsheet tidak lengkap"}. Data dashboard sebelumnya tetap dipakai.`);
       } finally {
@@ -1305,7 +1325,35 @@
       }
     }
 
+    function updateLiveScriptStatus(date) {
+      $("liveScriptStatus").innerHTML = `<span class="live-dot"></span><span>Live Apps Script: ${date.toLocaleString("id-ID", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replaceAll(".", ":")}</span>`;
+    }
+
+    function saveLiveData(refreshedData, date) {
+      try {
+        localStorage.setItem(LIVE_DATA_STORAGE_KEY, JSON.stringify({ updatedAt: date.toISOString(), data: refreshedData }));
+      } catch (error) {}
+    }
+
+    function restoreLiveData() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LIVE_DATA_STORAGE_KEY) || "null");
+        if (!saved?.data) return;
+        const restoredData = normalizeData(saved.data);
+        validateStoredLiveData(restoredData);
+        data = restoredData;
+        if (saved.updatedAt) updateLiveScriptStatus(new Date(saved.updatedAt));
+      } catch (error) {}
+    }
+
+    function validateStoredLiveData(storedData) {
+      if ((storedData.weeks || []).length < 10 || (storedData.records || []).length < 1000) {
+        throw new Error("Stored live data incomplete");
+      }
+    }
+
     async function loadSheetRows(gid) {
+      if (APPS_SCRIPT_URL) return loadSheetRowsFromAppsScript(gid);
       if (!USE_NETLIFY_PROXY) return loadSheetRowsFallback(gid);
       try {
         const response = await fetch(`${SHEET_PROXY_URL}?gid=${encodeURIComponent(gid)}&cachebust=${Date.now()}`, { cache: "no-store" });
@@ -1314,6 +1362,19 @@
       } catch (error) {
         return loadSheetRowsFallback(gid);
       }
+    }
+
+    async function loadSheetRowsFromAppsScript(gid) {
+      if (!appsScriptDataPromise) {
+        appsScriptDataPromise = fetch(`${APPS_SCRIPT_URL}?cachebust=${Date.now()}`, { cache: "no-store" })
+          .then((response) => {
+            if (!response.ok) throw new Error(`Apps Script HTTP ${response.status}`);
+            return response.json();
+          });
+      }
+      const payload = await appsScriptDataPromise;
+      if (gid === "246622240") return payload?.sheets?.drill || [];
+      return payload?.sheets?.attendance || [];
     }
 
     function loadSheetRowsFallback(gid) {
@@ -1576,9 +1637,9 @@
         if (String(cell).trim() !== "Month" || String(header[index + 2] || "").trim() !== "Jumlah Sesi Ideal") return;
         const dateColumns = [];
         for (let column = index + 3; column < Math.min(index + 9, header.length); column += 1) {
-          const match = String(header[column] || "").trim().match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
-          if (!match) continue;
-          dateColumns.push({ index: column, label: header[column].trim(), iso: `${match[3]}-${monthMap[match[2]]}-${String(Number(match[1])).padStart(2, "0")}`, day: String(dayrow[column] || "").trim() });
+          const dateInfo = sheetDateInfo(header[column], monthMap);
+          if (!dateInfo) continue;
+          dateColumns.push({ index: column, label: dateInfo.label, iso: dateInfo.iso, day: String(dayrow[column] || "").trim() });
         }
         if (!dateColumns.length) return;
         const votes = new Map();
@@ -1629,6 +1690,36 @@
       });
       const weeks = [...weekMap.values()].sort(comparePeriod);
       return { generatedFrom: "Google Sheets refresh", studentCount: students.length, weekCount: weeks.length, students, weeks, studentWeeks, records };
+    }
+
+    function sheetDateInfo(value, monthMap) {
+      const text = String(value || "").trim();
+      const sheetIso = normalizeSheetIsoDate(text);
+      if (sheetIso) {
+        return { iso: sheetIso, label: formatSheetDateLabel(sheetIso) };
+      }
+      const match = text.match(/^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/);
+      if (!match) return null;
+      return {
+        iso: `${match[3]}-${monthMap[match[2]]}-${String(Number(match[1])).padStart(2, "0")}`,
+        label: text
+      };
+    }
+
+    function normalizeSheetIsoDate(value) {
+      const text = String(value || "").trim();
+      if (!text.match(/^\d{4}-\d{2}-\d{2}T/)) return "";
+      const date = new Date(text);
+      if (Number.isNaN(date.getTime())) return "";
+      date.setUTCHours(date.getUTCHours() + 8);
+      return date.toISOString().slice(0, 10);
+    }
+
+    function formatSheetDateLabel(iso) {
+      const date = new Date(`${iso}T00:00:00`);
+      const day = date.getDate();
+      const month = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"][date.getMonth()];
+      return `${day} ${month} ${date.getFullYear()}`;
     }
 
     function parseCsv(text) {
