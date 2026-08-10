@@ -854,9 +854,10 @@
             </tr>`;
       $("studentRows").innerHTML = rows.map((row) => {
         const cls = row.attendanceRate >= 0.8 ? "good" : row.attendanceRate >= 0.6 ? "warn" : "bad";
-        const studentButton = `<button class="name-toggle" onclick="toggleAttendanceAbsences('${encodeURIComponent(row.student || "")}')">${escapeHtml(row.student || "")}</button>`;
-        const inlineAbsences = !isClassAggregate && expandedAttendanceStudent === String(row.student || "").toLowerCase()
-          ? renderInlineAbsences(row.student, colSpan)
+        const studentKey = `${String(row.student || "").toLowerCase()}|${row.weekKey || ""}`;
+        const studentButton = `<button class="name-toggle" onclick="toggleAttendanceAbsences('${encodeURIComponent(row.student || "")}', '${encodeURIComponent(row.weekKey || "")}')">${escapeHtml(row.student || "")}</button>`;
+        const inlineAbsences = !isClassAggregate && expandedAttendanceStudent === studentKey
+          ? renderInlineAbsences(row.student, colSpan, row.weekKey || "")
           : "";
         const classKey = `${String(row.class || "").toLowerCase()}|${row.weekKey || ""}`;
         const classButton = `<button class="name-toggle" onclick="toggleClassBottomStudents('${encodeURIComponent(row.class || "")}', '${encodeURIComponent(row.weekKey || "")}')">${escapeHtml(row.class || "")}</button>`;
@@ -907,9 +908,11 @@
       }).join("");
     }
 
-    function toggleAttendanceAbsences(encodedStudent) {
+    function toggleAttendanceAbsences(encodedStudent, encodedWeekKey = "") {
       const student = decodeURIComponent(encodedStudent || "").toLowerCase();
-      expandedAttendanceStudent = expandedAttendanceStudent === student ? "" : student;
+      const weekKey = decodeURIComponent(encodedWeekKey || "");
+      const key = `${student}|${weekKey}`;
+      expandedAttendanceStudent = expandedAttendanceStudent === key ? "" : key;
       render();
     }
 
@@ -949,8 +952,8 @@
       </td></tr>`;
     }
 
-    function renderInlineAbsences(studentName, colSpan) {
-      const absences = absenceRecordsForStudent(studentName);
+    function renderInlineAbsences(studentName, colSpan, weekKey = "") {
+      const absences = absenceRecordsForStudent(studentName, weekKey);
       return `<tr class="inline-absence-row"><td colspan="${colSpan}">
         <div class="inline-absence-list">
           ${absences.length ? absences.map((record) => `<div class="absence-item">
@@ -961,13 +964,14 @@
       </td></tr>`;
     }
 
-    function absenceRecordsForStudent(studentName) {
+    function absenceRecordsForStudent(studentName, weekKey = "") {
       const filters = currentFilters();
       const selectedName = String(studentName || "").toLowerCase();
       const noSearchFilters = { ...filters, search: "" };
       return data.records
         .filter((record) => {
           if (String(record.student || "").toLowerCase() !== selectedName) return false;
+          if (weekKey && record.weekKey !== weekKey) return false;
           if (!weekMatches(record, noSearchFilters)) return false;
           if (filters.status && record.status !== filters.status) return false;
           return ["Alpa", "Izin", "Sakit"].includes(record.status) || String(record.raw || "").trim() === "0";
