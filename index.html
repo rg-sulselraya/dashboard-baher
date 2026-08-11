@@ -2200,12 +2200,11 @@
       const selectedMonth = $("drillMonthSelect").value;
       const selectedWeek = $("drillWeekSelect").value;
       const date = selectedDrillDate;
-      if (!date) {
-        alert("Pilih tanggal drill terlebih dahulu.");
+      const activeDates = currentDrillDates.length ? currentDrillDates : [date].filter(Boolean);
+      if (!activeDates.length) {
+        alert("Tidak ada tanggal drill sesuai filter saat ini.");
         return;
       }
-
-      const activeDates = currentDrillDates.length ? currentDrillDates : [date];
       const rows = drillData.filter((row) => {
         if (selectedStudent && !row.student.toLowerCase().includes(selectedStudent)) return false;
         if (drillMode === "class" && selectedClass && row.class !== selectedClass) return false;
@@ -2214,7 +2213,7 @@
         if (!activeDates.includes(row.date)) return false;
         return true;
       });
-      const displayRows = drillDisplayRows(rows, selectedClass, activeDates[0] || date, selectedStudent);
+      const displayRows = drillDisplayRows(rows, selectedClass, activeDates[0] || date, selectedStudent, activeDates);
       if (!displayRows.length) {
         alert("Tidak ada data siswa untuk filter drill saat ini.");
         return;
@@ -2228,7 +2227,7 @@
         total: displayRows.reduce((sum, row) => sum + row.total, 0)
       };
       const title = selectedStudentRecord ? `Rekap Drill ${selectedStudentRecord.name}` : selectedClass ? `Rekap Drill ${selectedClass}` : "Rekap Drill Semua Siswa";
-      const subtitle = `${selectedMonth || "Semua month"}${selectedWeek ? ` - ${selectedWeek}` : " - Semua week"} | ${activeDates.length > 1 ? `${numberFmt.format(activeDates.length)} tanggal` : safeFormatLongDate(date)}`;
+      const subtitle = `${selectedMonth || "Semua month"}${selectedWeek ? ` - ${selectedWeek}` : " - Semua week"} | ${activeDates.length > 1 ? `${numberFmt.format(activeDates.length)} tanggal` : safeFormatLongDate(activeDates[0])}`;
       const printWindow = window.open("", "_blank");
       if (!printWindow) {
         alert("Pop-up diblokir browser. Izinkan pop-up untuk mengunduh PDF.");
