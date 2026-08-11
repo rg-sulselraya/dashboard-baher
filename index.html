@@ -310,6 +310,7 @@
       <div class="panel-head">
         <h2 id="attendanceTableTitle">Rekap Per Siswa, Bulan, Week</h2>
         <div class="table-tools">
+          <select id="tableClassSelect" title="Filter kelas" aria-label="Filter kelas"></select>
           <input id="tableSearch" type="search" placeholder="Cari di tabel">
           <select id="sortSelect">
             <option value="monthWeek:asc">Bulan & Week</option>
@@ -480,7 +481,7 @@
     const ACCESS_CODE = "baher03";
 
     const $ = (id) => document.getElementById(id);
-    const inputIds = ["searchInput", "classSelect", "monthSelect", "weekSelect", "statusSelect", "periodSelect", "tableSearch", "sortSelect"];
+    const inputIds = ["searchInput", "classSelect", "monthSelect", "weekSelect", "statusSelect", "periodSelect", "tableClassSelect", "tableSearch", "sortSelect"];
 
     function localIsoDate(date = new Date()) {
       const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
@@ -608,6 +609,7 @@
     function fillOptions() {
       $("dataSubtitle").textContent = `${numberFmt.format(data.students.length)} siswa, ${numberFmt.format(data.weeks.length)} periode bulan/week, ${numberFmt.format(data.records.length)} entri presensi`;
       $("classSelect").innerHTML = `<option value="">Semua kelas</option>` + classes.map((kelas) => `<option value="${escapeHtml(kelas)}">${escapeHtml(kelas)}</option>`).join("");
+      $("tableClassSelect").innerHTML = `<option value="">Semua kelas</option>` + classes.map((kelas) => `<option value="${escapeHtml(kelas)}">${escapeHtml(kelas)}</option>`).join("");
       $("monthSelect").innerHTML = `<option value="">Semua bulan</option>` + months.map((month) => `<option value="${escapeHtml(month)}">${escapeHtml(month)}</option>`).join("");
       $("weekSelect").innerHTML = `<option value="">Semua week</option>` + weekNames.map((week) => `<option value="${escapeHtml(week)}">${escapeHtml(week)}</option>`).join("");
       $("periodSelect").innerHTML = `<option value="">Semua bulan/week</option>` + data.weeks.map((period) => `<option value="${escapeHtml(period.key)}">${escapeHtml(period.label)}</option>`).join("");
@@ -648,7 +650,7 @@
     function currentFilters() {
       return {
         search: $("searchInput").value.trim().toLowerCase(),
-        kelas: $("classSelect").value,
+        kelas: $("classSelect").value || $("tableClassSelect").value,
         month: $("monthSelect").value,
         week: $("weekSelect").value,
         status: $("statusSelect").value,
@@ -1928,6 +1930,7 @@
       $("weekSelect").value = "";
       $("statusSelect").value = "";
       $("periodSelect").value = "";
+      $("tableClassSelect").value = "";
       $("tableSearch").value = "";
       $("sortSelect").value = "monthWeek:asc";
       render();
