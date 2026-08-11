@@ -717,7 +717,7 @@
           return row.total > 0;
         });
       }
-      if (applyMode && attendanceMode === "class") rows = filters.kelas ? summarizeAttendanceRowsByStudent(rows) : summarizeAttendanceRowsByClass(rows);
+      if (applyMode && attendanceMode === "class") rows = filters.kelas ? summarizeAttendanceRowsByClassWeek(rows) : summarizeAttendanceRowsByClass(rows);
       if (applyMode && attendanceMode === "student" && !filters.search) rows = summarizeAttendanceRowsByStudent(rows);
       if (filters.tableSearch) {
         rows = rows.filter((row) => `${row.student} ${row.class} ${row.month || ""} ${row.week || ""}`.toLowerCase().includes(filters.tableSearch));
@@ -832,6 +832,7 @@
     }
 
     function renderTable(rows) {
+      const filters = currentFilters();
       $("emptyState").hidden = rows.length > 0;
       const isClassAggregate = rows.some((row) => row.aggregateClass);
       const isClassWeekAggregate = rows.some((row) => row.aggregateClassWeek);
@@ -887,8 +888,8 @@
           : "";
         const classKey = `${String(row.class || "").toLowerCase()}|${row.weekKey || ""}`;
         const classButton = `<button class="name-toggle" onclick="toggleClassBottomStudents('${encodeURIComponent(row.class || "")}', '${encodeURIComponent(row.weekKey || "")}')">${escapeHtml(row.class || "")}</button>`;
-        const inlineClassBottom = (isClassAggregate || isClassWeekAggregate) && expandedAttendanceClass === classKey
-          ? renderClassBottomStudents(row.class, colSpan, row.weekKey || "")
+        const inlineClassBottom = !filters.kelas && (isClassAggregate || isClassWeekAggregate) && expandedAttendanceClass === classKey
+          ? renderClassBottomStudents(row.class, colSpan)
           : "";
         return isClassWeekAggregate ? `<tr>
           <td class="name">${classButton}</td>
@@ -931,7 +932,7 @@
           <td class="bad">${numberFmt.format(row.absent)}</td>
           <td class="${cls}">${Math.round(row.attendanceRate * 100)}%</td>
         </tr>${inlineAbsences}`;
-      }).join("");
+      }).join("") + (filters.kelas && isClassWeekAggregate ? renderClassBottomStudents(filters.kelas, colSpan) : "");
     }
 
     function toggleAttendanceAbsences(encodedStudent, encodedWeekKey = "") {
@@ -953,12 +954,15 @@
     function renderClassBottomStudents(kelas, colSpan, weekKey = "") {
       const filters = { ...currentFilters(), search: "", kelas, tableSearch: "" };
       const sourceRows = filteredWeekRows(filters, false).filter((row) => !weekKey || row.weekKey === weekKey);
+      const hasClassFilter = Boolean(currentFilters().kelas);
       const rows = summarizeAttendanceRowsByStudent(sourceRows)
-        .sort((a, b) => a.attendanceRate - b.attendanceRate || a.present - b.present || a.student.localeCompare(b.student, "id"))
-        .slice(0, 5);
+        .sort((a, b) => hasClassFilter
+          ? a.student.localeCompare(b.student, "id")
+          : a.attendanceRate - b.attendanceRate || a.present - b.present || a.student.localeCompare(b.student, "id"))
+        .slice(0, hasClassFilter ? undefined : 5);
       return `<tr class="inline-absence-row"><td colspan="${colSpan}">
         <div class="inline-absence-list">
-          <div class="inline-panel-title"><span>5 siswa kehadiran terbawah</span><span class="pill">${escapeHtml(kelas)}</span></div>
+          <div class="inline-panel-title"><span>${hasClassFilter ? "Daftar siswa sesuai filter" : "5 siswa kehadiran terbawah"}</span><span class="pill">${escapeHtml(kelas)}</span></div>
           ${rows.length ? `<div class="inline-student-table"><table>
             <thead><tr><th>Nama Siswa</th><th>Sesi Ideal</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>% Hadir</th></tr></thead>
             <tbody>${rows.map((row) => {
