@@ -717,7 +717,7 @@
           return row.total > 0;
         });
       }
-      if (applyMode && attendanceMode === "class") rows = filters.kelas ? summarizeAttendanceRowsByClassWeek(rows) : summarizeAttendanceRowsByClass(rows);
+      if (applyMode && attendanceMode === "class") rows = filters.kelas ? summarizeAttendanceRowsByStudent(rows) : summarizeAttendanceRowsByClass(rows);
       if (applyMode && attendanceMode === "student" && !filters.search) rows = summarizeAttendanceRowsByStudent(rows);
       if (filters.tableSearch) {
         rows = rows.filter((row) => `${row.student} ${row.class} ${row.month || ""} ${row.week || ""}`.toLowerCase().includes(filters.tableSearch));
@@ -2108,11 +2108,80 @@
       URL.revokeObjectURL(url);
     }
 
+    function downloadAttendanceRowsPdf(title, subtitle, rows) {
+      const totals = countStatusesFromRows(rows);
+      const idealTotal = rows.reduce((sum, row) => sum + (row.idealSessions || 0), 0);
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        alert("Pop-up diblokir browser. Izinkan pop-up untuk mengunduh PDF.");
+        return;
+      }
+      printWindow.document.write(`
+        <!doctype html>
+        <html lang="id">
+        <head>
+          <meta charset="utf-8">
+          <title>${escapeHtml(title)}</title>
+          <style>
+            @page { size: A4 portrait; margin: 12mm; }
+            * { box-sizing: border-box; }
+            body { font-family: Arial, sans-serif; color: #13202f; margin: 0; font-size: 11px; }
+            .header { border-bottom: 3px solid #00809d; padding-bottom: 10px; margin-bottom: 14px; }
+            .pdf-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+            .pdf-logo { width: 112px; height: auto; }
+            h1 { margin: 0; font-size: 18px; line-height: 1.25; color: #007fc7; }
+            .meta { margin-top: 5px; color: #52657a; font-size: 11px; }
+            .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 12px 0 14px; }
+            .box { border: 1px solid #cfe0ec; border-radius: 7px; padding: 6px; background: #f6fbff; }
+            .box-label { color: #52657a; font-size: 11px; font-weight: 700; }
+            .box-value { margin-top: 3px; font-size: 14px; font-weight: 800; }
+            table { width: 100%; border-collapse: collapse; font-size: 11px; }
+            th, td { border: 1px solid #cfe0ec; padding: 5px 6px; text-align: center; }
+            th { background: #e9f8ff; color: #52657a; font-weight: 800; }
+            td:first-child, td:nth-child(2), th:first-child, th:nth-child(2) { text-align: left; }
+            .good { color: #10B981; } .permit { color: #F58220; } .violet { color: #7c5ce7; } .bad { color: #ef4444; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="pdf-top">
+              <div>
+                <h1>${escapeHtml(title)}</h1>
+                <div class="meta">${escapeHtml(subtitle)} | Dicetak: ${new Date().toLocaleDateString("id-ID")}</div>
+              </div>
+              <img class="pdf-logo" src="ruangguru-logo.svg" alt="Ruangguru">
+            </div>
+          </div>
+          <div class="summary">
+            <div class="box"><div class="box-label">Siswa</div><div class="box-value">${numberFmt.format(rows.length)}</div></div>
+            <div class="box"><div class="box-label">Sesi Ideal</div><div class="box-value">${numberFmt.format(idealTotal)}</div></div>
+            <div class="box"><div class="box-label">Hadir</div><div class="box-value good">${numberFmt.format(totals.Hadir)}</div></div>
+            <div class="box"><div class="box-label">Alpa</div><div class="box-value bad">${numberFmt.format(totals.Alpa)}</div></div>
+            <div class="box"><div class="box-label">% Hadir</div><div class="box-value">${idealTotal ? Math.round((totals.Hadir / idealTotal) * 100) : 0}%</div></div>
+          </div>
+          <table>
+            <thead><tr><th>Nama Siswa</th><th>Kelas</th><th>Sesi Ideal</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpa</th><th>% Hadir</th></tr></thead>
+            <tbody>
+              ${rows.map((row) => `<tr><td>${escapeHtml(row.student)}</td><td>${escapeHtml(row.class)}</td><td>${numberFmt.format(row.idealSessions || 0)}</td><td class="good">${numberFmt.format(row.present || 0)}</td><td class="permit">${numberFmt.format(row.permit || 0)}</td><td class="violet">${numberFmt.format(row.sick || 0)}</td><td class="bad">${numberFmt.format(row.absent || 0)}</td><td>${Math.round((row.attendanceRate || 0) * 100)}%</td></tr>`).join("")}
+            </tbody>
+          </table>
+          <script>window.onload = () => { window.print(); };<\/script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
+
     function downloadStudentPdf() {
       const filters = currentFilters();
       const student = data.students.find((item) => item.name.toLowerCase() === filters.search);
       if (!student) {
-        alert("Pilih satu nama siswa dari filter Cari siswa terlebih dahulu.");
+        if (filters.kelas) {
+          const rows = summarizeAttendanceRowsByStudent(filteredWeekRows(filters, false));
+          downloadAttendanceRowsPdf(`Rekap Kehadiran ${filters.kelas}`, periodText(filters), rows);
+          return;
+        }
+        alert("Pilih satu nama siswa atau filter kelas terlebih dahulu.");
         return;
       }
 
@@ -2226,6 +2295,16 @@
         blank: displayRows.reduce((sum, row) => sum + row.blank, 0),
         total: displayRows.reduce((sum, row) => sum + row.total, 0)
       };
+      const dateBreakdownRows = selectedStudent ? activeDates.map((activeDate) => {
+        const dateRows = rows.filter((row) => row.date === activeDate);
+        const [row] = drillDisplayRows(dateRows, selectedClass, activeDate, selectedStudent, [activeDate]);
+        const target = row?.target || 0;
+        const correct = row?.correct || 0;
+        const wrong = row?.wrong || 0;
+        const blank = row?.blank || 0;
+        const total = row?.total || 0;
+        return { date: activeDate, target, correct, wrong, blank, total, percent: target ? Math.round((correct / target) * 100) : 0 };
+      }) : [];
       const title = selectedStudentRecord ? `Rekap Drill ${selectedStudentRecord.name}` : selectedClass ? `Rekap Drill ${selectedClass}` : "Rekap Drill Semua Siswa";
       const subtitle = `${selectedMonth || "Semua month"}${selectedWeek ? ` - ${selectedWeek}` : " - Semua week"} | ${activeDates.length > 1 ? `${numberFmt.format(activeDates.length)} tanggal` : safeFormatLongDate(activeDates[0])}`;
       const printWindow = window.open("", "_blank");
@@ -2257,6 +2336,7 @@
             .wrong { color: #ef4444; }
             .blank { color: #7c5ce7; }
             .percent { color: #F58220; }
+            .section-title { margin: 12px 0 7px; color: #007fc7; font-size: 12px; font-weight: 800; }
             table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
             th, td { border: 1px solid #cfe0ec; padding: 5px 6px; text-align: center; }
             th { background: #e9f8ff; color: #52657a; font-weight: 800; }
@@ -2287,6 +2367,15 @@
               ${displayRows.map((row) => `<tr><td>${escapeHtml(row.student)}</td><td>${escapeHtml(row.class)}</td><td>${numberFmt.format(row.target)}</td><td class="correct">${numberFmt.format(row.correct)}</td><td class="wrong">${numberFmt.format(row.wrong)}</td><td class="blank">${numberFmt.format(row.blank)}</td><td>${numberFmt.format(row.total)}</td><td class="percent">${row.target ? Math.round((row.correct / row.target) * 100) : 0}%</td></tr>`).join("")}
             </tbody>
           </table>
+          ${dateBreakdownRows.length ? `
+            <div class="section-title">Detail Per Tanggal</div>
+            <table>
+              <thead><tr><th>Tanggal</th><th>Target</th><th>Benar</th><th>Salah</th><th>Blank</th><th>Total</th><th>% Benar</th></tr></thead>
+              <tbody>
+                ${dateBreakdownRows.map((row) => `<tr><td>${safeFormatLongDate(row.date)}</td><td>${numberFmt.format(row.target)}</td><td class="correct">${numberFmt.format(row.correct)}</td><td class="wrong">${numberFmt.format(row.wrong)}</td><td class="blank">${numberFmt.format(row.blank)}</td><td>${numberFmt.format(row.total)}</td><td class="percent">${row.percent}%</td></tr>`).join("")}
+              </tbody>
+            </table>
+          ` : ""}
           <script>window.onload = () => { window.print(); };<\/script>
         </body>
         </html>
