@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monitoring Kesiswaan BAHER</title>
-  <script src="chart.umd.min.js?v=20260811d"></script>
-  <script src="attendance-data.js?v=20260811d"></script>
-  <script src="drill-data.js?v=20260811d"></script>
+  <script src="chart.umd.min.js?v=20260811b"></script>
+  <script src="attendance-data.js?v=20260811b"></script>
+  <script src="drill-data.js?v=20260811b"></script>
   <style>
     :root {
       --bg: #eef8fd;
@@ -85,7 +85,7 @@
     .panel-head .table-tools input { min-width: 230px; }
     .panel-head .table-tools select, .chart-controls select { min-width: 210px; }
     .chartbox { height: 360px; padding: 18px 22px 12px; }
-    .attendance-class-mode .chartbox { height: 430px; padding: 22px 30px 14px; }
+    .attendance-class-mode .chartbox { height: 460px; padding: 26px 28px 16px; }
     .chart-controls { display: flex; gap: 8px; align-items: center; }
     .chart-controls select { height: 34px; min-height: 34px; min-width: 118px; }
     .table-wrap { overflow: auto; max-height: 560px; }
@@ -278,7 +278,7 @@
     </section>
 
     <section class="stats" aria-label="Ringkasan">
-      <div class="stat"><div class="label" id="primaryCountLabel">Siswa</div><div class="value" id="studentCount">0</div><div class="hint">sesuai filter</div></div>
+      <div class="stat"><div class="label">Siswa</div><div class="value" id="studentCount">0</div><div class="hint">sesuai filter</div></div>
       <div class="stat"><div class="label">Sesi Ideal</div><div class="value ideal" id="idealCount">0</div><div class="hint">sesi wajib hadir</div></div>
       <div class="stat"><div class="label">Hadir</div><div class="value good" id="presentCount">0</div><div class="hint" id="presentHint">0%</div></div>
       <div class="stat"><div class="label">Izin</div><div class="value permit" id="permitCount">0</div><div class="hint">hari izin</div></div>
@@ -458,18 +458,17 @@
         if (!labelValues.length) return;
         const { ctx } = chart;
         ctx.save();
-        ctx.textBaseline = "bottom";
+        ctx.fillStyle = "#13202f";
+        ctx.font = "900 11px Inter, sans-serif";
         ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
         labelValues.forEach((datasetValues, datasetIndex) => {
           const meta = chart.getDatasetMeta(datasetIndex);
           if (!meta || meta.hidden) return;
           meta.data.forEach((bar, index) => {
             const value = datasetValues[index];
             if (value == null) return;
-            ctx.fillStyle = datasetIndex === 0 ? "#b45309" : "#047857";
-            ctx.font = "850 10px Inter, sans-serif";
-            const lift = datasetIndex === 0 ? 9 : 7;
-            const y = Math.max(chart.chartArea.top + 10, bar.y - lift);
+            const y = Math.max(chart.chartArea.top + 10, bar.y - 8);
             ctx.fillText(numberFmt.format(value), bar.x, y);
           });
         });
@@ -792,11 +791,7 @@
       const totals = countStatusesFromRows(rows);
       const idealTotal = rows.reduce((sum, row) => sum + (row.idealSessions || 0), 0);
       const presentRate = idealTotal ? Math.round((totals.Hadir / idealTotal) * 100) : 0;
-      $("primaryCountLabel").textContent = attendanceMode === "class" ? "Kelas" : "Siswa";
-      const primaryCount = attendanceMode === "class"
-        ? (filters.kelas ? 1 : rows.filter((row) => row.class && row.class !== "-").length)
-        : new Set(rows.map((row) => row.studentId)).size;
-      $("studentCount").textContent = numberFmt.format(primaryCount);
+      $("studentCount").textContent = numberFmt.format(new Set(rows.map((row) => row.studentId)).size);
       $("idealCount").textContent = numberFmt.format(idealTotal);
       $("presentCount").textContent = numberFmt.format(totals.Hadir);
       $("permitCount").textContent = numberFmt.format(totals.Izin);
@@ -1106,17 +1101,14 @@
     }
 
     function renderClassBarChart(rows) {
-      const filters = currentFilters();
-      const isSingleClassAllWeeks = Boolean(filters.kelas) && !filters.week && !filters.period;
-      const chartRows = isSingleClassAllWeeks
-        ? summarizeByClass(filteredWeekRows(filters, false)).filter((row) => row.class === filters.kelas)
-        : rows.some((row) => row.aggregateClass) ? rows : summarizeAttendanceRowsByClass(rows);
-      const classNames = chartRows.map((row) => row.class);
-      const labels = isSingleClassAllWeeks ? chartRows.map((row) => `${row.month} - ${row.week}`) : classNames.map(formatClassAxisLabel);
-      const idealData = chartRows.map((row) => row.idealSessions || 0);
-      const presentData = chartRows.map((row) => row.present || 0);
-      const canvas = $("trendChart");
-      const chartBox = canvas.parentElement;
+      const classRows = rows.some((row) => row.aggregateClass)
+        ? rows
+        : summarizeAttendanceRowsByClass(rows);
+      const classNames = classRows.map((row) => row.class);
+      const labels = classNames.map(formatClassAxisLabel);
+      const idealData = classRows.map((row) => row.idealSessions || 0);
+      const presentData = classRows.map((row) => row.present || 0);
+      const presentPercentData = classRows.map((row) => Math.round((row.attendanceRate || 0) * 100));
       const presentGradient = (context) => {
         const chart = context.chart;
         const area = chart.chartArea;
@@ -1136,27 +1128,10 @@
         gradient.addColorStop(1, "rgba(251, 146, 60, 0.55)");
         return gradient;
       };
-      $("trendTitle").textContent = isSingleClassAllWeeks ? `Kehadiran ${filters.kelas} Per Week` : "Persentase Kehadiran Per Kelas";
+      $("trendTitle").textContent = "Persentase Kehadiran Per Kelas";
       if (trendChart) trendChart.destroy();
-      if (isSingleClassAllWeeks) {
-        chartBox.style.display = "flex";
-        chartBox.style.justifyContent = "flex-start";
-        chartBox.style.overflowX = "auto";
-        const minWidth = Math.max(chartBox.clientWidth, Math.max(chartRows.length, 1) * 150);
-        canvas.style.width = `${minWidth}px`;
-        canvas.style.height = "100%";
-        canvas.style.flex = "0 0 auto";
-        canvas.width = minWidth;
-      } else {
-        chartBox.style.display = "";
-        chartBox.style.justifyContent = "";
-        chartBox.style.overflowX = "hidden";
-        canvas.style.width = "100%";
-        canvas.style.flex = "";
-      }
-      trendChart = new Chart(canvas, {
+      trendChart = new Chart($("trendChart"), {
         type: "bar",
-        plugins: [percentLabelPlugin],
         data: {
           labels,
           datasets: [
@@ -1167,9 +1142,9 @@
               backgroundColor: idealGradient,
               borderRadius: { topLeft: 5, topRight: 5 },
               borderSkipped: false,
-              barPercentage: 0.82,
-              categoryPercentage: 0.58,
-              maxBarThickness: 24
+              barPercentage: 0.72,
+              categoryPercentage: 0.6,
+              maxBarThickness: 32
             },
             {
               label: "Hadir",
@@ -1178,14 +1153,14 @@
               backgroundColor: presentGradient,
               borderRadius: { topLeft: 5, topRight: 5 },
               borderSkipped: false,
-              barPercentage: 0.82,
-              categoryPercentage: 0.58,
-              maxBarThickness: 24
+              barPercentage: 0.72,
+              categoryPercentage: 0.6,
+              maxBarThickness: 32
             }
           ]
         },
         options: {
-          responsive: !isSingleClassAllWeeks,
+          responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
           plugins: {
@@ -1201,11 +1176,9 @@
               bodyFont: { size: 12, weight: "700" },
               callbacks: {
                 title: () => "",
-                label: (context) => context.datasetIndex === 0 ? "" : `${Math.round((presentData[context.dataIndex] / Math.max(idealData[context.dataIndex], 1)) * 100)}%`,
-                labelColor: () => ({ borderColor: "#10B981", backgroundColor: "#10B981" })
+                label: (context) => `${presentPercentData[context.dataIndex]}%`
               }
-            },
-            percentLabelPlugin: { labelValues: [idealData, presentData] }
+            }
           },
           layout: { padding: { top: 12, right: 12, bottom: 4, left: 0 } },
           scales: {
@@ -1235,8 +1208,8 @@
       const room = text.match(/\bR\d+\.(\d+)$/);
       const shortRoom = room ? `R${Number(room[1])}` : "";
       const upper = text.toUpperCase();
-      if (upper.includes("KEDINASAN")) return ["Kedinasan", shortRoom].filter(Boolean);
-      if (upper.includes("SIAP SNBT")) return ["SNBT", shortRoom].filter(Boolean);
+      if (upper.includes("KEDINASAN")) return `Kedinasan ${shortRoom}`.trim();
+      if (upper.includes("SIAP SNBT")) return `SNBT ${shortRoom}`.trim();
       const grade = text.match(/\b(6|7|8|9|10|11|12)\b/);
       if (grade) return `${grade[1]} ${shortRoom}`.trim();
       return shortRoom || text;
