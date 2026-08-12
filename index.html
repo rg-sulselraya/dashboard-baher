@@ -245,7 +245,7 @@
         </div>
       </div>
       <div class="header-side">
-        <div class="live-status" id="liveScriptStatus"><span class="live-dot"></span><span>Live Apps Script: siap</span></div>
+        <div class="live-status" id="liveScriptStatus"><span class="live-dot"></span><span>Data live: siap</span></div>
       </div>
     </div>
     <nav class="wrap nav-tabs" aria-label="Menu monitoring">
@@ -255,7 +255,7 @@
       <button class="nav-tab" data-view="prepostView">Pre test & Post test Siswa</button>
       <div class="actions nav-actions">
         <button class="refresh" id="refreshBtn">Refresh</button>
-          <button class="danger" id="resetBtn">Reset</button>
+        <button class="danger" id="resetBtn">Reset</button>
         <button class="primary" id="downloadBtn">Unduh CSV</button>
       </div>
     </nav>
@@ -430,10 +430,10 @@
     const SHEET_PROXY_URL = "/.netlify/functions/sheet";
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhfHMZOJZELgfkGcyFjL-GXjHYD9wseeo9PazOYqCr5i-knQLRtXo8lgGH0ywv8X3JSw/exec";
     const LIVE_DATA_STORAGE_KEY = "baherLiveAttendanceData";
-    const LIVE_DATA_SCHEMA_VERSION = 3;
+    const LIVE_DATA_SCHEMA_VERSION = 4;
     const LIVE_DRILL_STORAGE_KEY = "baherLiveDrillData";
     const LIVE_DRILL_SCHEMA_VERSION = 2;
-    const DASHBOARD_MIN_TODAY = localIsoDate();
+    const DASHBOARD_MIN_TODAY = localIsoDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
     const USE_NETLIFY_PROXY = location.hostname.includes("netlify");
     let appsScriptDataPromise = null;
     let data = normalizeData(window.ATTENDANCE_DATA || { students: [], weeks: [], studentWeeks: [], records: [] });
@@ -518,6 +518,7 @@
       document.querySelectorAll("[data-drill-mode]").forEach((tab) => tab.addEventListener("click", () => setDrillMode(tab.dataset.drillMode)));
       document.querySelectorAll(".nav-tab").forEach((tab) => tab.addEventListener("click", () => showView(tab.dataset.view)));
       render();
+      startAutoRefresh();
     }
 
     function setAttendanceMode(mode) {
@@ -1251,22 +1252,29 @@
     async function loadDrillData(force = false) {
       if (drillLoaded && !force) return;
       try {
-        if (Array.isArray(window.DRILL_DATA) && !force) {
-          drillData = window.DRILL_DATA;
-        } else {
-          drillData = buildDrillData(await loadSheetRows("246622240"));
-        }
+        const liveRows = await loadSheetRows("246622240");
+        const liveDrillData = buildDrillData(liveRows);
+        if (!liveDrillData.length) throw new Error("data drill live kosong");
+        drillData = liveDrillData;
         drillLoaded = true;
         selectedDrillDate = "";
         fillDrillFilters();
         renderDrill();
       } catch (error) {
-        drillData = [];
-        drillLoaded = true;
-        selectedDrillDate = "";
-        fillDrillFilters();
-        renderDrill();
-        alert(`Data Raw Drill gagal dimuat: ${error.message || error}. Filter kelas, nama siswa, month, dan week tetap tersedia dari data presensi.`);
+        if (Array.isArray(window.DRILL_DATA) && window.DRILL_DATA.length) {
+          drillData = window.DRILL_DATA;
+          drillLoaded = true;
+          selectedDrillDate = "";
+          fillDrillFilters();
+          renderDrill();
+        } else {
+          drillData = [];
+          drillLoaded = true;
+          selectedDrillDate = "";
+          fillDrillFilters();
+          renderDrill();
+          alert(`Data Raw Drill gagal dimuat: ${error.message || error}. Filter kelas, nama siswa, month, dan week tetap tersedia dari data presensi.`);
+        }
       }
     }
 
@@ -1274,17 +1282,17 @@
       const headerRowIndex = findDrillHeaderRow(rows);
       const header = (rows[headerRowIndex] || rows[0] || []).map((cell) => String(cell || "").trim().toLowerCase());
       const indexOf = (patterns) => header.findIndex((label) => patterns.some((pattern) => label.includes(pattern)));
-      const subjectIndex = 10; // Kolom K
-      const topicIndex = 11; // Kolom L
-      const nameIndex = 21; // Kolom V
-      const classIndex = 6; // Kolom G
-      const dateIndex = 16; // Kolom Q
-      const monthIndex = 17; // Kolom R
-      const weekIndex = 19; // Kolom T
-      const correctIndex = 12; // Kolom M
-      const wrongIndex = 13; // Kolom N
-      const blankIndex = 14; // Kolom O
-      const totalIndex = 15; // Kolom P
+      const subjectIndex = (() => { const i = indexOf(["subject", "mata pelajaran", "mapel"]); return i >= 0 ? i : 10; })(); // Kolom K
+      const topicIndex = (() => { const i = indexOf(["topic", "materi"]); return i >= 0 ? i : 11; })(); // Kolom L
+      const nameIndex = (() => { const i = indexOf(["nama siswa", "nama", "student", "siswa"]); return i >= 0 ? i : 21; })(); // Kolom V
+      const classIndex = (() => { const i = indexOf(["kelas", "class", "rombel"]); return i >= 0 ? i : 6; })(); // Kolom G
+      const dateIndex = (() => { const i = indexOf(["tanggal", "date", "tgl", "waktu"]); return i >= 0 ? i : 16; })(); // Kolom Q
+      const monthIndex = (() => { const i = indexOf(["month", "bulan"]); return i >= 0 ? i : 17; })(); // Kolom R
+      const weekIndex = (() => { const i = indexOf(["week", "minggu"]); return i >= 0 ? i : 19; })(); // Kolom T
+      const correctIndex = (() => { const i = indexOf(["benar", "correct"]); return i >= 0 ? i : 12; })(); // Kolom M
+      const wrongIndex = (() => { const i = indexOf(["salah", "wrong"]); return i >= 0 ? i : 13; })(); // Kolom N
+      const blankIndex = (() => { const i = indexOf(["blank", "kosong"]); return i >= 0 ? i : 14; })(); // Kolom O
+      const totalIndex = (() => { const i = indexOf(["total", "jumlah"]); return i >= 0 ? i : 15; })(); // Kolom P
 
       return rows.map((row) => {
         const student = valueAt(row, nameIndex);
@@ -1940,30 +1948,39 @@
       render();
     }
 
-    async function refreshData() {
+    function startAutoRefresh() {
+      window.setTimeout(() => refreshData({ silent: true, keepFilters: true }), 1200);
+      window.setInterval(() => refreshData({ silent: true, keepFilters: true }), 5 * 60 * 1000);
+    }
+
+    async function refreshData(options = {}) {
+      const { silent = false, keepFilters = false } = options;
       const button = $("refreshBtn");
       const previous = button.textContent;
       button.disabled = true;
-      button.textContent = "Memuat...";
+      if (!silent) button.textContent = "Memuat...";
       try {
         appsScriptDataPromise = null;
+        const refreshTime = new Date();
         const refreshedData = normalizeData(buildAttendanceData(await loadSheetRows("0")));
         const refreshedDrillData = buildDrillData(await loadSheetRows("246622240"));
         validateRefreshedAttendanceData(refreshedData);
         data = refreshedData;
         drillData = refreshedDrillData;
         drillLoaded = true;
-        saveLiveData(refreshedData, new Date());
-        saveLiveDrillData(refreshedDrillData, new Date());
+        saveLiveData(refreshedData, refreshTime);
+        saveLiveDrillData(refreshedDrillData, refreshTime);
         rebuildIndexes();
         fillOptions();
         fillDrillFilters();
-        resetFilters();
+        if (keepFilters) render();
+        else resetFilters();
         renderDrill();
-        $("dataSubtitle").textContent += ` | diperbarui ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
-        updateLiveScriptStatus(new Date());
+        $("dataSubtitle").textContent += ` | diperbarui ${refreshTime.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+        updateLiveScriptStatus(refreshTime, "Data live");
       } catch (error) {
-        alert(`Refresh gagal: ${error.message || "data dari spreadsheet tidak lengkap"}. Data dashboard sebelumnya tetap dipakai.`);
+        console.warn("Refresh gagal:", error);
+        if (!silent) alert(`Refresh gagal: ${error.message || "data dari spreadsheet tidak lengkap"}. Data dashboard sebelumnya tetap dipakai.`);
       } finally {
         button.disabled = false;
         button.textContent = previous;
@@ -1972,18 +1989,21 @@
 
     function validateRefreshedAttendanceData(refreshedData) {
       const refreshedMonths = new Set((refreshedData.weeks || []).map((week) => week.month).filter(Boolean));
-      const currentMonths = new Set((data.weeks || []).map((week) => week.month).filter(Boolean));
-      const minimumWeeks = Math.max(10, Math.floor((data.weeks || []).length * 0.7));
+      const minimumWeeks = 4;
       if ((refreshedData.weeks || []).length < minimumWeeks) {
-        throw new Error(`${numberFmt.format((refreshedData.weeks || []).length)} periode terbaca, seharusnya sekitar ${numberFmt.format((data.weeks || []).length)}`);
+        throw new Error(`${numberFmt.format((refreshedData.weeks || []).length)} periode terbaca, minimal ${numberFmt.format(minimumWeeks)} periode`);
       }
-      if (refreshedMonths.size < Math.min(4, currentMonths.size)) {
-        throw new Error(`bulan yang terbaca hanya ${[...refreshedMonths].join(", ") || "kosong"}`);
+      if (refreshedMonths.size < 1) {
+        throw new Error("bulan yang terbaca kosong");
+      }
+      const fallbackStudents = (window.ATTENDANCE_DATA?.students || []).length || 0;
+      if ((refreshedData.students || []).length < Math.max(50, Math.floor(fallbackStudents * 0.8))) {
+        throw new Error(`${numberFmt.format((refreshedData.students || []).length)} siswa terbaca, seharusnya sekitar ${numberFmt.format(fallbackStudents)}`);
       }
     }
 
-    function updateLiveScriptStatus(date) {
-      $("liveScriptStatus").innerHTML = `<span class="live-dot"></span><span>Live Apps Script: ${date.toLocaleString("id-ID", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replaceAll(".", ":")}</span>`;
+    function updateLiveScriptStatus(date, label = "Data live") {
+      $("liveScriptStatus").innerHTML = `<span class="live-dot"></span><span>${label}: ${date.toLocaleString("id-ID", { day: "numeric", month: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replaceAll(".", ":")}</span>`;
     }
 
     function saveLiveData(refreshedData, date) {
@@ -2000,7 +2020,7 @@
         const restoredData = normalizeData(saved.data);
         validateStoredLiveData(restoredData);
         data = restoredData;
-        if (saved.updatedAt) updateLiveScriptStatus(new Date(saved.updatedAt));
+        if (saved.updatedAt) updateLiveScriptStatus(new Date(saved.updatedAt), "Presensi tersimpan");
       } catch (error) {}
     }
 
@@ -2034,15 +2054,23 @@
     }
 
     async function loadSheetRows(gid) {
-      if (APPS_SCRIPT_URL) return loadSheetRowsFromAppsScript(gid);
-      if (!USE_NETLIFY_PROXY) return loadSheetRowsFallback(gid);
-      try {
-        const response = await fetch(`${SHEET_PROXY_URL}?gid=${encodeURIComponent(gid)}&cachebust=${Date.now()}`, { cache: "no-store" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return parseCsv(await response.text());
-      } catch (error) {
-        return loadSheetRowsFallback(gid);
+      if (APPS_SCRIPT_URL) {
+        try {
+          return await loadSheetRowsFromAppsScript(gid);
+        } catch (error) {
+          console.warn("Apps Script refresh failed, falling back:", error);
+        }
       }
+      if (USE_NETLIFY_PROXY) {
+        try {
+          const response = await fetch(`${SHEET_PROXY_URL}?gid=${encodeURIComponent(gid)}&cachebust=${Date.now()}`, { cache: "no-store" });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          return parseCsv(await response.text());
+        } catch (error) {
+          console.warn("Netlify proxy refresh failed, falling back:", error);
+        }
+      }
+      return loadSheetRowsFallback(gid);
     }
 
     async function loadSheetRowsFromAppsScript(gid) {
@@ -2080,7 +2108,7 @@
           cleanup();
           reject(new Error("Fallback script failed"));
         };
-        script.src = `https://docs.google.com/spreadsheets/d/18PBKyGq0ZZx8WQclEFmrSDsWZjCj3QyxF-uSKSemz-I/gviz/tq?tqx=out:json;responseHandler:${callbackName}&gid=${encodeURIComponent(gid)}&cachebust=${Date.now()}`;
+        script.src = `https://docs.google.com/spreadsheets/d/18PBKyGq0ZZx8WQclEFmrSDsWZjCj3QyxF-uSKSemz-I/gviz/tq?tqx=out:json;responseHandler:${callbackName};reqId:${Date.now()}&headers=0&gid=${encodeURIComponent(gid)}&cachebust=${Date.now()}`;
         document.body.appendChild(script);
       });
     }
@@ -2398,8 +2426,9 @@
     }
 
     function buildAttendanceData(rows) {
-      const header = rows[0] || [];
-      const dayrow = rows[1] || [];
+      const headerRowIndex = findAttendanceHeaderRow(rows);
+      const header = rows[headerRowIndex] || [];
+      const dayrow = rows[headerRowIndex + 1] || [];
       const monthMap = { Jan: "01", Feb: "02", Mar: "03", Apr: "04", Mei: "05", Jun: "06", Jul: "07", Agu: "08", Sep: "09", Okt: "10", Nov: "11", Des: "12" };
       const blocks = [];
       header.forEach((cell, index) => {
@@ -2429,7 +2458,7 @@
       const records = [];
       const studentWeeks = [];
       const weekMap = new Map();
-      rows.slice(2).forEach((row, rowIndex) => {
+      rows.slice(headerRowIndex + 2).forEach((row, rowIndex) => {
         if (!String(row[0] || "").trim()) return;
         const studentId = rowIndex + 1;
         const student = {
@@ -2459,6 +2488,11 @@
       });
       const weeks = [...weekMap.values()].sort(comparePeriod);
       return { generatedFrom: "Google Sheets refresh", studentCount: students.length, weekCount: weeks.length, students, weeks, studentWeeks, records };
+    }
+
+    function findAttendanceHeaderRow(rows) {
+      const index = rows.findIndex((row) => row.some((cell) => String(cell || "").trim() === "Month") && row.some((cell) => String(cell || "").trim() === "Jumlah Sesi Ideal"));
+      return index >= 0 ? index : 0;
     }
 
     function sheetDateInfo(value, monthMap) {
