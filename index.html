@@ -429,7 +429,7 @@
     const SHEET_PROXY_URL = "/.netlify/functions/sheet";
     const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhfHMZOJZELgfkGcyFjL-GXjHYD9wseeo9PazOYqCr5i-knQLRtXo8lgGH0ywv8X3JSw/exec";
     const LIVE_DATA_STORAGE_KEY = "baherLiveAttendanceData";
-    const LIVE_DATA_SCHEMA_VERSION = 4;
+    const LIVE_DATA_SCHEMA_VERSION = 5;
     const LIVE_DRILL_STORAGE_KEY = "baherLiveDrillData";
     const LIVE_DRILL_SCHEMA_VERSION = 2;
     const DASHBOARD_MIN_TODAY = localIsoDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
@@ -2014,6 +2014,9 @@
       if ((refreshedData.students || []).length < Math.max(50, Math.floor(fallbackStudents * 0.8))) {
         throw new Error(`${numberFmt.format((refreshedData.students || []).length)} siswa terbaca, seharusnya sekitar ${numberFmt.format(fallbackStudents)}`);
       }
+      if (!(refreshedData.records || []).length) {
+        throw new Error("entri presensi terbaca kosong");
+      }
     }
 
     function updateLiveScriptStatus(date, label = "Data live") {
@@ -2056,7 +2059,7 @@
     }
 
     function validateStoredLiveData(storedData) {
-      if ((storedData.weeks || []).length < 10 || (storedData.records || []).length < 1000) {
+      if ((storedData.weeks || []).length < 4 || !(storedData.records || []).length) {
         throw new Error("Stored live data incomplete");
       }
     }
