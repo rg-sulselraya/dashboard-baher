@@ -1429,7 +1429,7 @@
       $("drillSummaryPanel").hidden = !dates.length || !displayRows.length;
       $("drillDetailPanel").hidden = !dates.length || !displayRows.length || !shouldShowStudentRows;
       if (!dates.length || !displayRows.length) return;
-      const target = displayRows.reduce((sum, row) => sum + row.target, 0);
+      const target = drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date);
       const correct = displayRows.reduce((sum, row) => sum + row.correct, 0);
       const wrong = displayRows.reduce((sum, row) => sum + row.wrong, 0);
       const blank = displayRows.reduce((sum, row) => sum + row.blank, 0);
@@ -1480,7 +1480,7 @@
       const selectedStudentRecord = findSelectedDrillStudent(selectedStudent);
       const selectedClass = drillMode === "student" ? (selectedStudentRecord?.class || "") : $("drillClassSelect").value;
       const displayRows = drillDisplayRows(dateRows, selectedClass, date, selectedStudent, [date]);
-      const target = displayRows.reduce((sum, row) => sum + row.target, 0);
+      const target = drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date);
       const correct = displayRows.reduce((sum, row) => sum + row.correct, 0);
       const wrong = displayRows.reduce((sum, row) => sum + row.wrong, 0);
       const blank = displayRows.reduce((sum, row) => sum + row.blank, 0);
@@ -1764,6 +1764,21 @@
 
     function activeStudentsByClass(kelas) {
       return data.students.filter((student) => student.class === kelas && isActiveStudent(student));
+    }
+
+    function drillExpectedTargetForDate(kelas, selectedStudent, selectedStudentRecord, date) {
+      let students = [];
+      if (selectedStudent) {
+        const student = selectedStudentRecord || findSelectedDrillStudent(selectedStudent);
+        if (student) students = [student];
+      } else if (kelas) {
+        students = activeStudentsByClass(kelas);
+      } else {
+        students = data.students.filter(isActiveStudent);
+      }
+      return students
+        .filter((student) => isStudentTargetDate(student.name, date))
+        .reduce((sum, student) => sum + drillTarget(student.class), 0);
     }
 
     function isActiveStudent(student) {
