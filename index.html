@@ -1429,7 +1429,8 @@
       $("drillSummaryPanel").hidden = !dates.length || !displayRows.length;
       $("drillDetailPanel").hidden = !dates.length || !displayRows.length || !shouldShowStudentRows;
       if (!dates.length || !displayRows.length) return;
-      const target = drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date);
+      const selectedStudentRecord = findSelectedDrillStudent(selectedStudent);
+      const target = dates.reduce((sum, date) => sum + drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date), 0);
       const correct = displayRows.reduce((sum, row) => sum + row.correct, 0);
       const wrong = displayRows.reduce((sum, row) => sum + row.wrong, 0);
       const blank = displayRows.reduce((sum, row) => sum + row.blank, 0);
