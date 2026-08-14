@@ -143,7 +143,9 @@
     .attendance-filters, .drill-filters { border-top-left-radius: 0; border-top-right-radius: 0; box-shadow: var(--shadow); }
     #drillRowsWrap table { border-collapse: separate; border-spacing: 0; }
     #drillRowsWrap th { background: #f0f8fc; font-size: 13px; text-transform: uppercase; }
+    #drillRowsWrap th, #drillRowsWrap td { text-align: center; }
     #drillRowsWrap td { background: #fff; }
+    #drillRowsWrap td.name { min-width: 0; text-align: left; }
     #drillRowsWrap tbody tr:nth-child(even) td { background: #fbfdff; }
     #drillRowsWrap tbody tr:hover td { background: #f3fbff; }
     #drillRowsWrap td.metric { font-weight: 850; border-radius: 0; }
@@ -379,7 +381,7 @@
           <div class="detail-item"><div class="detail-label">% Benar</div><div class="detail-value permit" id="drillPercent">0%</div></div>
         </div>
       </div>
-      <div class="panel">
+      <div class="panel" id="drillDatePanel">
         <div class="panel-head">
           <h2>Tanggal Drill Soal</h2>
           <div class="table-tools">
@@ -1401,9 +1403,11 @@
       if (drillMode === "class" && isAllDrillPeriodSelected()) {
         dates = classTargetDateRange(selectedClass);
       }
+      const isAllClassDrill = drillMode === "class" && !selectedClass;
       currentDrillDates = dates;
       if (selectedDrillDate && !dates.includes(selectedDrillDate)) selectedDrillDate = "";
       if (drillMode === "class" && selectedClass && !selectedDrillDate) selectedDrillDate = dates[0] || "";
+      $("drillDatePanel").hidden = isAllClassDrill;
       $("drillDateCount").textContent = `${numberFmt.format(dates.length)} tanggal`;
       $("drillDateGrid").innerHTML = dates.length ? dates.map((date) => renderDrillDateRow(date, rows) + renderStudentSubjectDetail(date, rows)).join("") : `<div class="empty">Tidak ada tanggal sesuai filter.</div>`;
       if (selectedStudent || (drillMode === "class" && selectedClass)) {
@@ -1423,20 +1427,24 @@
     function renderDrillDetail(rows, selectedClass = "", selectedStudent = "", aggregateDates = null) {
       const dates = aggregateDates?.length ? aggregateDates : [selectedDrillDate].filter(Boolean);
       const selectedRows = rows.filter((row) => dates.includes(row.date));
-      const displayRows = drillDisplayRows(selectedRows, selectedClass, dates[0] || selectedDrillDate, selectedStudent, dates);
+      const displayRows = drillMode === "class" && !selectedClass
+        ? summarizeDrillRowsByClass(selectedRows, dates)
+        : drillDisplayRows(selectedRows, selectedClass, dates[0] || selectedDrillDate, selectedStudent, dates);
       const isStudentDetail = Boolean(selectedStudent);
-      const shouldShowStudentRows = drillMode !== "student" && Boolean(selectedClass);
+      const shouldShowStudentRows = drillMode === "class";
       $("drillSummaryPanel").hidden = !dates.length || !displayRows.length;
       $("drillDetailPanel").hidden = !dates.length || !displayRows.length || !shouldShowStudentRows;
       if (!dates.length || !displayRows.length) return;
       const selectedStudentRecord = findSelectedDrillStudent(selectedStudent);
-      const target = dates.reduce((sum, date) => sum + drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date), 0);
+      const target = drillMode === "class" && !selectedClass
+        ? displayRows.reduce((sum, row) => sum + row.target, 0)
+        : dates.reduce((sum, date) => sum + drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date), 0);
       const correct = displayRows.reduce((sum, row) => sum + row.correct, 0);
       const wrong = displayRows.reduce((sum, row) => sum + row.wrong, 0);
       const blank = displayRows.reduce((sum, row) => sum + row.blank, 0);
       const total = displayRows.reduce((sum, row) => sum + row.total, 0);
       const dateTitle = dates.length > 1 ? `${numberFmt.format(dates.length)} tanggal` : safeFormatLongDate(dates[0]);
-      $("drillDetailTitle").textContent = `${isStudentDetail ? "Detail Drill Siswa" : selectedClass ? `Detail Drill ${selectedClass}` : "Rekap Drill Semua Siswa"} - ${dateTitle}`;
+      $("drillDetailTitle").textContent = `${isStudentDetail ? "Detail Drill Siswa" : selectedClass ? `Detail Drill ${selectedClass}` : "Rekap Drill Semua Kelas"} - ${dateTitle}`;
       $("drillTargetNote").textContent = "Kelas 12 dan SNBT target 10, lainnya 5";
       $("drillTarget").textContent = numberFmt.format(target);
       $("drillCorrect").textContent = numberFmt.format(correct);
@@ -1450,10 +1458,13 @@
 
     function renderDrillRows(displayRows, selectedRows) {
       const isStudentMode = drillMode === "student";
+      const isAllClassDrill = drillMode === "class" && !$("drillClassSelect").value;
       const rows = isStudentMode ? summarizeSubjectTopicRows(selectedRows) : displayRows;
       const headers = isStudentMode
         ? ["Subject", "Topic", "Benar", "Salah", "Blank", "Total", "% Benar"]
-        : ["Nama", "Kelas", "Target", "Benar", "Salah", "Blank", "Total", "% Benar"];
+        : isAllClassDrill
+          ? ["Kelas", "Siswa", "Target", "Benar", "Salah", "Blank", "Total", "% Benar"]
+          : ["Nama", "Kelas", "Target", "Benar", "Salah", "Blank", "Total", "% Benar"];
       $("drillRowsHead").innerHTML = `<tr>${headers.map((header) => `<th>${header}</th>`).join("")}</tr>`;
       $("drillRows").innerHTML = rows.length ? rows.map((row) => isStudentMode ? `<tr>
           <td class="name">${escapeHtml(row.subject || "-")}</td>
@@ -1463,6 +1474,15 @@
           <td class="metric metric-blank">${numberFmt.format(row.blank)}</td>
           <td class="metric metric-total">${numberFmt.format(row.total)}</td>
           <td class="metric metric-percent">${row.total ? Math.round((row.correct / row.total) * 100) : 0}%</td>
+        </tr>` : isAllClassDrill ? `<tr>
+          <td class="name">${escapeHtml(row.class)}</td>
+          <td>${escapeHtml(row.student)}</td>
+          <td class="metric metric-target">${numberFmt.format(row.target)}</td>
+          <td class="metric metric-correct">${numberFmt.format(row.correct)}</td>
+          <td class="metric metric-wrong">${numberFmt.format(row.wrong)}</td>
+          <td class="metric metric-blank">${numberFmt.format(row.blank)}</td>
+          <td class="metric metric-total">${numberFmt.format(row.total)}</td>
+          <td class="metric metric-percent">${row.target ? Math.round((row.correct / row.target) * 100) : 0}%</td>
         </tr>` : `<tr>
           <td class="name">${escapeHtml(row.student)}</td>
           <td>${escapeHtml(row.class)}</td>
@@ -1475,13 +1495,44 @@
         </tr>`).join("") : `<tr><td colspan="${headers.length}" class="empty">Tidak ada detail subject dan topic pada tanggal ini.</td></tr>`;
     }
 
+    function summarizeDrillRowsByClass(rows, dates) {
+      const grouped = new Map();
+      rows.forEach((row) => {
+        const key = row.class || "-";
+        if (!grouped.has(key)) {
+          grouped.set(key, { class: key, correct: 0, wrong: 0, blank: 0, total: 0, students: new Set(), dates: new Set() });
+        }
+        const item = grouped.get(key);
+        item.correct += row.correct;
+        item.wrong += row.wrong;
+        item.blank += row.blank;
+        item.total += row.total;
+        item.students.add(row.student.toLowerCase());
+        item.dates.add(row.date);
+      });
+      return [...grouped.values()]
+        .filter((row) => row.class && row.class !== "-")
+        .map((row) => ({
+          student: `${numberFmt.format(activeStudentsByClass(row.class).length || row.students.size)} siswa`,
+          class: row.class,
+          target: classLeaderboardTarget(row, dates),
+          correct: row.correct,
+          wrong: row.wrong,
+          blank: row.blank,
+          total: row.total
+        }))
+        .sort((a, b) => compareClass(a.class, b.class));
+    }
+
     function renderDrillDateRow(date, rows) {
       const dateRows = rows.filter((row) => row.date === date);
       const selectedStudent = drillMode === "student" ? $("drillStudentInput").value.trim().toLowerCase() : "";
       const selectedStudentRecord = findSelectedDrillStudent(selectedStudent);
       const selectedClass = drillMode === "student" ? (selectedStudentRecord?.class || "") : $("drillClassSelect").value;
       const displayRows = drillDisplayRows(dateRows, selectedClass, date, selectedStudent, [date]);
-      const target = drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date);
+      const target = drillMode === "class" && !selectedClass
+        ? summarizeDrillRowsByClass(dateRows, [date]).reduce((sum, row) => sum + row.target, 0)
+        : drillExpectedTargetForDate(selectedClass, selectedStudent, selectedStudentRecord, date);
       const correct = displayRows.reduce((sum, row) => sum + row.correct, 0);
       const wrong = displayRows.reduce((sum, row) => sum + row.wrong, 0);
       const blank = displayRows.reduce((sum, row) => sum + row.blank, 0);

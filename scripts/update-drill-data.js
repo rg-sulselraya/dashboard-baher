@@ -10,7 +10,7 @@ const OUT = path.join(__dirname, "..", "drill-data.js");
 
 function fetchText(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (response) => {
+    https.get(url, { agent: false }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         fetchText(response.headers.location).then(resolve, reject);
         return;
